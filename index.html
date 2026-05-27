@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 純文字版</title>
+    <title>Family Style - 動態平衡版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
@@ -15,7 +15,6 @@
             touch-action: none; position: relative;
         }
 
-        /* --- 1. 大廳 SVG 動態背景 --- */
         #lobby-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
@@ -27,7 +26,6 @@
             100% { transform: translateY(-20vh) rotate(360deg); }
         }
 
-        /* --- 2. 大廳 UI 介面 --- */
         #game-wrapper { position: relative; width: 100%; max-width: 800px; z-index: 1; }
         #game-container { width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         
@@ -112,7 +110,6 @@
         { name: "胡蘿蔔汁", req: { carrot: 2 } }
     ];
 
-    // 將原本的 Emoji 對照表改為純文字對照表
     const NAME_MAP = { tomato: '番茄', carrot: '胡蘿蔔', cabbage: '高麗菜' };
 
     // ==========================================
@@ -125,6 +122,10 @@
             this.score = 0;
             this.currentRecipe = null;
             this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+            
+            // 【新增】儲存房內所有大廚的狀態名冊
+            this.activeChefs = {};
+            this.mySpecialty = 'all';
 
             this.generateGameTextures();
 
@@ -149,15 +150,23 @@
             
             // 拿取食材按鈕
             const spawnBtn = this.add.container(400, 430);
-            const btnBg = this.add.rectangle(0, 0, 180, 50, 0x3182ce, 1).setInteractive({ useHandCursor: true });
-            const btnText = this.add.text(0, 0, '拿取食材', { fontSize: '20px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
-            spawnBtn.add([btnBg, btnText]);
+            const btnBg = this.add.rectangle(0, 0, 240, 50, 0x3182ce, 1).setInteractive({ useHandCursor: true });
+            // 將文字物件抽出來以便動態更換
+            this.btnText = this.add.text(0, 0, '取得食材：初始化中', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+            spawnBtn.add([btnBg, this.btnText]);
             
             btnBg.on('pointerdown', () => {
-                const foods = ['tomato', 'carrot', 'cabbage'];
+                let foodToSpawn = this.mySpecialty;
+                
+                // 如果是單人模式，按下去時隨機噴出食材
+                if (this.mySpecialty === 'all') {
+                    const foods = ['tomato', 'carrot', 'cabbage'];
+                    foodToSpawn = foods[Math.floor(Math.random() * foods.length)];
+                }
+                
                 const rx = 400 + (Math.random() * 60 - 30);
                 const ry = 360 + (Math.random() * 40 - 20);
-                this.spawnFood(foods[Math.floor(Math.random() * foods.length)], rx, ry);
+                this.spawnFood(foodToSpawn, rx, ry);
                 btnBg.setFillStyle(0x2b6cb0);
             });
             btnBg.on('pointerup', () => btnBg.setFillStyle(0x3182ce));
@@ -170,7 +179,6 @@
             
             this.input.on('dragend', (p, obj) => {
                 obj.setScale(1); obj.setAlpha(1);
-                
                 const distToPlate = Phaser.Math.Distance.Between(obj.x, obj.y, this.plate.x, this.plate.y);
                 
                 if (distToPlate < 80) {
@@ -192,6 +200,62 @@
 
             this.connectMQTT();
             this.generateNewRecipe();
+
+            // 【新增】計時器：每 1.5 秒廣播一次自己的存在
+            this.time.addEvent({ delay: 1500, loop: true, callback: this.sendPresence, callbackScope: this });
+            // 【新增】計時器：每 1 秒檢查是否有隊友斷線斷訊
+            this.time.addEvent({ delay: 1000, loop: true, callback: this.checkPresenceTimeout, callbackScope: this });
+        }
+
+        // ==========================
+        // 【核心新增】動態角色分配邏輯
+        // ==========================
+        sendPresence() {
+            if (mqttClient && mqttClient.connected) {
+                mqttClient.publish(roomTopic, JSON.stringify({
+                    type: 'presence', clientId: uniqueClientId, name: playerNickname
+                }));
+            }
+        }
+
+        checkPresenceTimeout() {
+            let now = Date.now();
+            let hasChanged = false;
+            
+            // 超過 4 秒沒收到某一客人的心跳報告，就將其從廚房名單中移除
+            for (let id in this.activeChefs) {
+                if (id !== uniqueClientId && (now - this.activeChefs[id].lastSeen > 4000)) {
+                    delete this.activeChefs[id];
+                    hasChanged = true;
+                }
+            }
+            if (hasChanged) {
+                this.updateChefRoles();
+            }
+        }
+
+        updateChefRoles() {
+            // 確保自己永遠在名冊中
+            this.activeChefs[uniqueClientId] = { name: playerNickname, lastSeen: Date.now() };
+            
+            // 將所有在線大廚的 ClientID 進行排序（確保每台手機排出來的順序完全一致）
+            let sortedIds = Object.keys(this.activeChefs).sort();
+            let chefCount = sortedIds.length;
+            let myIndex = sortedIds.indexOf(uniqueClientId);
+            
+            const foodTypes = ['tomato', 'carrot', 'cabbage'];
+            
+            if (chefCount === 1) {
+                // 只有 1 個人：切換為萬能單人模式
+                this.mySpecialty = 'all';
+                this.btnText.setText('取得食材：隨機(單人模式)');
+                this.statusText.setText(`已連線 | 獨自烹飪中`);
+            } else {
+                // 2 人以上：根據排序索引餘數分配專屬食材，絕不衝突
+                this.mySpecialty = foodTypes[myIndex % foodTypes.length];
+                this.btnText.setText(`取得食材：${NAME_MAP[this.mySpecialty]}`);
+                this.statusText.setText(`已連線 | 廚房人數: ${chefCount}`);
+            }
         }
 
         // ==========================
@@ -287,13 +351,19 @@
         connectMQTT() {
             mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { clientId: uniqueClientId + '_' + Date.now() });
             mqttClient.on('connect', () => {
-                this.statusText.setText('已連線');
+                this.updateChefRoles();
                 mqttClient.subscribe(roomTopic);
             });
             mqttClient.on('message', (topic, message) => {
                 const data = JSON.parse(message.toString());
                 if (data.clientId !== uniqueClientId) {
-                    this.receiveFood(data.foodItem, data.senderName, data.direction);
+                    // 【新增辨識】區分訊息是傳送食材還是在線廣播
+                    if (data.type === 'food') {
+                        this.receiveFood(data.foodItem, data.senderName, data.direction);
+                    } else if (data.type === 'presence') {
+                        this.activeChefs[data.clientId] = { name: data.name, lastSeen: Date.now() };
+                        this.updateChefRoles();
+                    }
                 }
             });
         }
@@ -301,7 +371,7 @@
         sendFood(foodKey, direction) {
             if (mqttClient && mqttClient.connected) {
                 mqttClient.publish(roomTopic, JSON.stringify({ 
-                    clientId: uniqueClientId, senderName: playerNickname, foodItem: foodKey, direction: direction 
+                    type: 'food', clientId: uniqueClientId, senderName: playerNickname, foodItem: foodKey, direction: direction 
                 }));
             }
         }
