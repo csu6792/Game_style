@@ -2,66 +2,85 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Family Style - 完美免載入版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Family Style - RWD 手機全相容版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-touch-callout: none; /* 禁用長按選單 */
+            -webkit-user-select: none;   /* 禁用文字選取 */
+            user-select: none;
+        }
         body { 
             margin: 0; 
+            padding: 10px;
             background-color: #1a202c; 
             display: flex; 
             flex-direction: column;
             justify-content: center; 
             align-items: center; 
-            height: 100vh; 
-            overflow: hidden; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
             color: white;
             font-family: 'Microsoft JhengHei', sans-serif;
+            /* 關鍵：防止手機上拖曳蔬菜時帶動整個網頁畫面滾動 */
+            touch-action: none; 
         }
         #game-wrapper {
             position: relative;
-            width: 800px;
-            height: 480px;
+            width: 100%;
+            max-width: 800px; /* 電腦端最大寬度 */
+            margin: 0 auto;
         }
+        #game-container {
+            width: 100%;
+            background-color: #2d3748;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        /* 響應式房間大廳 */
         #lobby {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: #2d3748;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);
             text-align: center;
             z-index: 10;
-            width: 320px;
-            box-sizing: border-box;
+            width: 90%;
+            max-width: 320px;
         }
-        #lobby h2 { margin-top: 0; color: #f6ad55; }
+        #lobby h2 { margin-top: 0; color: #f6ad55; font-size: 22px; }
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-group label { display: block; margin-bottom: 5px; color: #cbd5e0; font-size: 14px; }
         .input-group input { 
-            width: 100%; padding: 10px; border-radius: 6px; border: none; 
-            background-color: #4a5568; color: white; font-size: 16px; box-sizing: border-box;
+            width: 100%; padding: 12px; border-radius: 6px; border: none; 
+            background-color: #4a5568; color: white; font-size: 16px;
         }
         #join-btn {
             width: 100%; padding: 12px; border-radius: 6px; border: none;
             background-color: #48bb78; color: white; font-size: 16px; font-weight: bold;
             cursor: pointer;
         }
+        /* 響應式 Console 除錯面板 */
         #visual-console {
-            width: 800px;
-            height: 120px;
+            width: 100%;
+            max-width: 800px;
+            height: 100px;
             background-color: #000000;
             border: 2px solid #4a5568;
             border-radius: 6px;
             margin-top: 10px;
-            padding: 10px;
-            box-sizing: border-box;
+            padding: 8px;
             overflow-y: auto;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11px;
             text-align: left;
         }
     </style>
@@ -73,7 +92,7 @@
         <h2>🍳 聯機大廚房</h2>
         <div class="input-group">
             <label for="room-input">請輸入房間號碼</label>
-            <input type="number" id="room-input" value="1234">
+            <input type="number" id="room-input" pattern="[0-9]*" inputmode="numeric" value="1234">
         </div>
         <div class="input-group">
             <label for="name-input">你的大廚暱稱</label>
@@ -88,7 +107,7 @@
 
 <script>
     // ==========================================
-    // 0. 核心除錯機制
+    // 0. 除錯機制
     // ==========================================
     const consoleDiv = document.getElementById('visual-console');
     function logToScreen(msg, isError = false) {
@@ -103,7 +122,7 @@
         return false;
     };
 
-    logToScreen("🚀 系統初始化完畢，等待玩家點擊進入...");
+    logToScreen("📱 響應式系統就緒，等待加入房間...");
 
     // ==========================================
     // 1. 全域聯機變數
@@ -120,17 +139,12 @@
     class GameScene extends Phaser.Scene {
         constructor() { super('GameScene'); }
 
-        preload() {
-            // 這裡刻意留空！不加載任何外部資源，徹底免疫 preload 卡死問題
-            logToScreen("ℹ️ 跳過傳統檔案載入階段，準備進入動態繪製材質流程...");
-        }
+        preload() {} // 使用免載入動態繪製技術
 
         create() {
-            logToScreen("ℹ️ 開始在記憶體中繪製蔬菜材質...");
             this.generateGameTextures();
-            logToScreen("🟢 蔬菜材質生成完畢！");
 
-            // 繪製遊戲背景
+            // 繪製背景 (基礎設定為 800x480 的虛擬畫布，Phaser 會自動等比縮放到手機螢幕上)
             this.add.rectangle(400, 240, 800, 480, 0x2d3748);
             
             // 邊界提示
@@ -142,7 +156,7 @@
             this.statusText = this.add.text(400, 30, '正在連線至伺服器...', { fontSize: '20px', fill: '#ecc94b' }).setOrigin(0.5);
 
             // 🛒 按鈕
-            const spawnBtn = this.add.text(400, 420, '🛒 點我拿食材', { fontSize: '24px', fill: '#fff', backgroundColor: '#3182ce', padding: { x: 20, y: 10 } })
+            const spawnBtn = this.add.text(400, 410, '🛒 點我拿食材', { fontSize: '24px', fill: '#fff', backgroundColor: '#3182ce', padding: { x: 20, y: 10 } })
                 .setOrigin(0.5).setInteractive({ useHandCursor: true });
             
             spawnBtn.on('pointerdown', () => {
@@ -151,6 +165,7 @@
                 this.spawnFood(randomFood, 400, 240);
             });
 
+            // 拖曳 (Phaser 預設完美支援手機 Touch 事件)
             this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
                 gameObject.x = dragX;
                 gameObject.y = dragY;
@@ -168,70 +183,48 @@
             this.connectMQTT();
         }
 
-        // 利用 Phaser 畫筆動態生成遊戲圖片材質
         generateGameTextures() {
-            // 1. 🍅 番茄材質
+            // 🍅 番茄材質
             let g = this.make.graphics({ x: 0, y: 0, add: false });
-            g.fillStyle(0xe53e3e, 1); // 紅色本體
-            g.fillCircle(50, 55, 30);
-            g.fillStyle(0x38a169, 1); // 綠色葉子與梗
-            g.fillRect(48, 12, 4, 15);
-            g.fillTriangle(50, 25, 30, 32, 70, 32);
-            g.generateTexture('tomato', 100, 100);
-            g.destroy();
+            g.fillStyle(0xe53e3e, 1); g.fillCircle(50, 55, 30);
+            g.fillStyle(0x38a169, 1); g.fillRect(48, 12, 4, 15); g.fillTriangle(50, 25, 30, 32, 70, 32);
+            g.generateTexture('tomato', 100, 100); g.destroy();
 
-            // 2. 🥕 胡蘿蔔材質
+            // 🥕 胡蘿蔔材質
             g = this.make.graphics({ x: 0, y: 0, add: false });
-            g.fillStyle(0xdd6b20, 1); // 橘色本體 (三角形)
-            g.fillTriangle(35, 35, 65, 35, 50, 85);
-            g.fillStyle(0x38a169, 1); // 綠色葉子
-            g.fillRect(48, 15, 4, 20);
-            g.fillCircle(44, 18, 5);
-            g.fillCircle(56, 18, 5);
-            g.generateTexture('carrot', 100, 100);
-            g.destroy();
+            g.fillStyle(0xdd6b20, 1); g.fillTriangle(35, 35, 65, 35, 50, 85);
+            g.fillStyle(0x38a169, 1); g.fillRect(48, 15, 4, 20); g.fillCircle(44, 18, 5); g.fillCircle(56, 18, 5);
+            g.generateTexture('carrot', 100, 100); g.destroy();
 
-            // 3. 🥬 高麗菜材質
+            // 🥬 高麗菜材質
             g = this.make.graphics({ x: 0, y: 0, add: false });
-            g.fillStyle(0x2f855a, 1); // 外層深綠
-            g.fillCircle(50, 50, 35);
-            g.fillStyle(0x48bb78, 1); // 中層翠綠
-            g.fillCircle(50, 50, 27);
-            g.fillStyle(0x68d391, 1); // 內層淺綠
-            g.fillCircle(50, 50, 18);
-            g.generateTexture('cabbage', 100, 100);
-            g.destroy();
+            g.fillStyle(0x2f855a, 1); g.fillCircle(50, 50, 35);
+            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 27);
+            g.fillStyle(0x68d391, 1); g.fillCircle(50, 50, 18);
+            g.generateTexture('cabbage', 100, 100); g.destroy();
         }
 
         connectMQTT() {
-            logToScreen(`📡 嘗試連線至 MQTT 伺服器... 房間頻道: ${roomTopic}`);
+            logToScreen(`📡 連線中... 頻道: room_${gameRoomId}`);
             
-            if (typeof mqtt === 'undefined') {
-                logToScreen("❌ 錯誤：找不到 mqtt 變數，請確認網路是否正常連接 CDN", true);
-                this.statusText.setText('🔴 連線失敗');
-                return;
-            }
-
             mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { 
                 clientId: uniqueClientId + '_' + Date.now(),
                 connectTimeout: 5000
             });
 
             mqttClient.on('connect', () => {
-                logToScreen("🟢 MQTT 連線成功！可以正常跨網頁傳遞食材了。");
+                logToScreen("🟢 伺服器連線成功！可以跟隊友互相瘋狂亂丟了");
                 this.statusText.setText('🟢 廚房已連線！');
                 mqttClient.subscribe(roomTopic);
             });
 
-            mqttClient.on('error', (err) => {
-                logToScreen(`❌ MQTT 發生錯誤: ${err.message}`, true);
-            });
+            mqttClient.on('error', (err) => { logToScreen(`❌ 連線錯誤: ${err.message}`, true); });
 
             mqttClient.on('message', (topic, message) => {
                 if (topic === roomTopic) {
                     const data = JSON.parse(message.toString());
                     if (data.clientId !== uniqueClientId) {
-                        logToScreen(`📥 收到來自 [${data.senderName}] 送來的 ${data.foodItem}`);
+                        logToScreen(`📥 收到來自 [${data.senderName}] 的 ${data.foodItem}`);
                         this.receiveFood(data.foodItem, data.senderName);
                     }
                 }
@@ -240,20 +233,17 @@
 
         sendFood(foodKey) {
             if (mqttClient && mqttClient.connected) {
-                logToScreen(`📤 正在將 ${foodKey} 丟出去...`);
+                logToScreen(`📤 扔出: ${foodKey}`);
                 const payload = JSON.stringify({ 
                     clientId: uniqueClientId, 
                     senderName: playerNickname, 
                     foodItem: foodKey 
                 });
                 mqttClient.publish(roomTopic, payload);
-            } else {
-                logToScreen("⚠️ 傳送失敗：伺服器尚未連線成功！", true);
             }
         }
 
         spawnFood(foodKey, x, y) {
-            logToScreen(`🍳 拿取了食材: ${foodKey}`);
             const food = this.add.image(x, y, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food);
         }
@@ -273,23 +263,26 @@
         const nameInput = document.getElementById('name-input').value.trim();
 
         if (!roomInput) {
-            logToScreen("⚠️ 請輸入有效的房間號碼", true);
+            logToScreen("⚠️ 請輸入房間號碼", true);
             return;
         }
 
         gameRoomId = roomInput;
-        playerNickname = nameInput || '新廚師';
+        playerNickname = nameInput || '手機大廚';
         roomTopic = `tw_game/family_style/room_${gameRoomId}`;
 
-        logToScreen(`🚪 正在進入房間 [${gameRoomId}]，暱稱設定為: ${playerNickname}`);
         document.getElementById('lobby').style.display = 'none';
 
-        // 啟動遊戲
+        // 啟動 Phaser 並配置【手機智慧縮放管理器】
         const config = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 480,
             parent: 'game-container',
+            scale: {
+                mode: Phaser.Scale.FIT,               // 核心：自動等比例填滿手機螢幕寬度
+                autoCenter: Phaser.Scale.CENTER_BOTH,  // 核心：畫布永遠水平與垂直置中
+                width: 800,                            // 遊戲內邏輯寬度
+                height: 480                            // 遊戲內邏輯高度
+            },
             scene: GameScene
         };
         new Phaser.Game(config);
