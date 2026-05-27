@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 視覺饗宴版</title>
+    <title>Family Style - 瘋狂出餐版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
@@ -15,21 +15,17 @@
             touch-action: none; position: relative;
         }
 
-        /* --- 1. 大廳 SVG 動態背景 --- */
         #lobby-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
             z-index: 0; overflow: hidden;
         }
-        .floating-svg {
-            position: absolute; opacity: 0.2; animation: float 15s infinite linear;
-        }
+        .floating-svg { position: absolute; opacity: 0.2; animation: float 15s infinite linear; }
         @keyframes float {
             0% { transform: translateY(110vh) rotate(0deg); }
             100% { transform: translateY(-20vh) rotate(360deg); }
         }
 
-        /* --- 2. 大廳 UI 介面 --- */
         #game-wrapper { position: relative; width: 100%; max-width: 800px; z-index: 1; }
         #game-container { width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         
@@ -55,18 +51,11 @@
             box-shadow: 0 4px 14px rgba(72, 187, 120, 0.4); transition: transform 0.2s;
         }
         #join-btn:active { transform: scale(0.98); }
-
-        #visual-console {
-            width: 95%; max-width: 800px; height: 80px; background-color: rgba(0,0,0,0.7);
-            border-radius: 8px; margin-top: 15px; padding: 10px; overflow-y: auto;
-            font-family: monospace; font-size: 11px; z-index: 1; border: 1px solid #4a5568;
-        }
     </style>
 </head>
 <body>
 
-    <div id="lobby-bg">
-        </div>
+    <div id="lobby-bg"></div>
 
     <div id="game-wrapper">
         <div id="lobby">
@@ -84,17 +73,15 @@
         <div id="game-container"></div>
     </div>
 
-    <div id="visual-console"></div>
-
 <script>
     // ==========================================
-    // 0. 大廳背景動畫生成 (SVG Animation)
+    // 0. 大廳背景動畫生成
     // ==========================================
     const lobbyBg = document.getElementById('lobby-bg');
     const svgIcons = [
-        `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#e53e3e"/><path d="M 50 20 L 50 10" stroke="#276749" stroke-width="6"/></svg>`, // Tomato
-        `<svg width="50" height="50" viewBox="0 0 100 100"><path d="M 35 40 L 65 40 L 50 90 Z" fill="#dd6b20"/><path d="M 50 40 L 50 20" stroke="#38a169" stroke-width="6"/></svg>`, // Carrot
-        `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#68d391"/></svg>` // Cabbage
+        `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#e53e3e"/><path d="M 50 20 L 50 10" stroke="#276749" stroke-width="6"/></svg>`, 
+        `<svg width="50" height="50" viewBox="0 0 100 100"><path d="M 35 40 L 65 40 L 50 90 Z" fill="#dd6b20"/><path d="M 50 40 L 50 20" stroke="#38a169" stroke-width="6"/></svg>`, 
+        `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#68d391"/></svg>` 
     ];
 
     for(let i=0; i<15; i++) {
@@ -108,18 +95,23 @@
     }
 
     // ==========================================
-    // 1. 除錯與全域變數
+    // 1. 全域變數
     // ==========================================
-    const consoleDiv = document.getElementById('visual-console');
-    function logToScreen(msg, isError = false) {
-        const color = isError ? '#fc8181' : '#68d391';
-        consoleDiv.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-        consoleDiv.scrollTop = consoleDiv.scrollHeight;
-    }
-
     let gameRoomId = "", playerNickname = "", roomTopic = "";
     const uniqueClientId = 'Chef_' + Math.floor(Math.random() * 10000);
     let mqttClient = null;
+
+    // 食譜資料庫
+    const RECIPE_BOOK = [
+        { name: "田園沙拉", req: { cabbage: 1, tomato: 1 } },
+        { name: "番茄蘿蔔湯", req: { tomato: 2, carrot: 1 } },
+        { name: "清炒時蔬", req: { cabbage: 2, carrot: 1 } },
+        { name: "鮮蔬大雜燴", req: { cabbage: 1, tomato: 1, carrot: 1 } },
+        { name: "雙倍茄汁", req: { tomato: 2 } },
+        { name: "胡蘿蔔汁", req: { carrot: 2 } }
+    ];
+
+    const EMOJI_MAP = { tomato: '🍅', carrot: '🥕', cabbage: '🥬' };
 
     // ==========================================
     // 2. Phaser 遊戲場景
@@ -128,73 +120,200 @@
         constructor() { super('GameScene'); }
 
         create() {
+            // 初始化玩家遊戲狀態
+            this.score = 0;
+            this.currentRecipe = null;
+            this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+
             this.generateGameTextures();
 
-            // --- 繪製「餐桌」背景 ---
+            // 繪製背景與邊界
             this.add.image(400, 240, 'table_bg');
-            
-            // 繪製左右邊界裝飾 (餐巾感)
             this.add.rectangle(50, 240, 100, 480, 0xffffff, 0.1);
             this.add.rectangle(750, 240, 100, 480, 0xffffff, 0.1);
             this.add.text(20, 240, '◄', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
             this.add.text(780, 240, '►', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
 
-            this.statusText = this.add.text(400, 30, '連線中...', { fontSize: '18px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(0.5);
+            // 狀態與分數顯示
+            this.statusText = this.add.text(780, 20, '連線中...', { fontSize: '16px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(1, 0);
+            this.scoreText = this.add.text(20, 20, '⭐ 分數: 0', { fontSize: '24px', fill: '#ecc94b', fontStyle: 'bold' });
 
-            // 🛒 生成食材按鈕
-            const spawnBtn = this.add.container(400, 420);
+            // 🍽️ 繪製中央出餐盤
+            this.plate = this.add.image(400, 260, 'plate');
+            this.add.text(400, 260, '出餐區', { fontSize: '18px', fill: '#a0aec0' }).setOrigin(0.5).setAlpha(0.5);
+
+            // 📜 繪製食譜 UI
+            const recipeBg = this.add.rectangle(400, 60, 360, 90, 0x2d3748, 0.9).setStrokeStyle(4, 0x4a5568).setScrollFactor(0);
+            this.recipeTitleText = this.add.text(400, 35, '準備中...', { fontSize: '22px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(0.5);
+            this.recipeItemsText = this.add.text(400, 70, '', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+            
+            // 🛒 拿取食材按鈕
+            const spawnBtn = this.add.container(400, 430);
             const btnBg = this.add.rectangle(0, 0, 180, 50, 0x3182ce, 1).setInteractive({ useHandCursor: true });
             const btnText = this.add.text(0, 0, '🛒 拿取食材', { fontSize: '20px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
             spawnBtn.add([btnBg, btnText]);
             
             btnBg.on('pointerdown', () => {
                 const foods = ['tomato', 'carrot', 'cabbage'];
-                this.spawnFood(foods[Math.floor(Math.random() * foods.length)], 400, 240);
+                this.spawnFood(foods[Math.floor(Math.random() * foods.length)], 400, 350);
                 btnBg.setFillStyle(0x2b6cb0);
             });
             btnBg.on('pointerup', () => btnBg.setFillStyle(0x3182ce));
 
-            // 拖曳邏輯
-            this.input.on('drag', (p, obj, dx, dy) => { obj.x = dx; obj.y = dy; obj.setAlpha(0.8); });
+            // 拖曳處理邏輯
+            this.input.on('drag', (p, obj, dx, dy) => { 
+                obj.x = dx; obj.y = dy; 
+                obj.setScale(1.2); obj.setAlpha(0.8); 
+            });
+            
             this.input.on('dragend', (p, obj) => {
-                obj.setAlpha(1);
-                if (obj.x > 700) { this.sendFood(obj.texture.key, 'right'); obj.destroy(); }
-                else if (obj.x < 100) { this.sendFood(obj.texture.key, 'left'); obj.destroy(); }
-                else { this.tweens.add({ targets: obj, x: 400, y: 240, duration: 200, ease: 'Power2' }); }
+                obj.setScale(1); obj.setAlpha(1);
+                
+                // 1. 判斷是否丟進中央盤子 (容錯距離 80px)
+                const distToPlate = Phaser.Math.Distance.Between(obj.x, obj.y, this.plate.x, this.plate.y);
+                
+                if (distToPlate < 80) {
+                    this.handleCookingDrop(obj);
+                } 
+                // 2. 判斷是否傳給隊友 (往左右扔)
+                else if (obj.x > 700) { 
+                    this.sendFood(obj.texture.key, 'right'); 
+                    obj.destroy(); 
+                } 
+                else if (obj.x < 100) { 
+                    this.sendFood(obj.texture.key, 'left'); 
+                    obj.destroy(); 
+                } 
+                // 3. 哪裡都沒去，彈回下方
+                else { 
+                    this.tweens.add({ targets: obj, x: 400, y: 350, duration: 200, ease: 'Power2' }); 
+                }
             });
 
             this.connectMQTT();
+            this.generateNewRecipe(); // 產生第一張訂單
         }
 
+        // ==========================
+        // 核心訂單邏輯
+        // ==========================
+        generateNewRecipe() {
+            // 隨機抽一張食譜
+            const randomIdx = Math.floor(Math.random() * RECIPE_BOOK.length);
+            this.currentRecipe = JSON.parse(JSON.stringify(RECIPE_BOOK[randomIdx]));
+            
+            // 清空進度
+            this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+            this.updateRecipeUI();
+
+            // 提示動畫
+            this.recipeTitleText.setScale(1.5);
+            this.tweens.add({ targets: this.recipeTitleText, scale: 1, duration: 300, ease: 'Bounce.easeOut' });
+        }
+
+        updateRecipeUI() {
+            if (!this.currentRecipe) return;
+            
+            this.recipeTitleText.setText(`📝 訂單：${this.currentRecipe.name}`);
+            
+            let reqStr = "";
+            for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
+                let current = this.currentProgress[key] || 0;
+                let color = current >= needed ? '#48bb78' : '#ffffff'; // 完成顯示綠色
+                let check = current >= needed ? '✓' : '';
+                reqStr += `[color=${color}]${EMOJI_MAP[key]} ${current}/${needed}${check}[/color]   `;
+            }
+            
+            // 使用 Phaser 內建的簡單色碼標籤系統來上色 (需要套用 bbcode 解析，這裡用土法煉鋼或單純字串)
+            // 為了確保手機端相容，這裡直接組成純文字字串
+            let pureText = "";
+            for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
+                let current = this.currentProgress[key] || 0;
+                let check = current >= needed ? '✔' : '';
+                pureText += `${EMOJI_MAP[key]} ${current}/${needed} ${check}  `;
+            }
+            this.recipeItemsText.setText(pureText);
+        }
+
+        handleCookingDrop(foodObj) {
+            const foodKey = foodObj.texture.key;
+            const needed = this.currentRecipe.req[foodKey] || 0;
+            const current = this.currentProgress[foodKey] || 0;
+
+            if (current < needed) {
+                // 是訂單需要的食材！
+                this.currentProgress[foodKey]++;
+                
+                // 丟進盤子的動畫
+                this.tweens.add({
+                    targets: foodObj, x: this.plate.x, y: this.plate.y, scale: 0, duration: 200,
+                    onComplete: () => {
+                        foodObj.destroy();
+                        this.checkRecipeCompletion();
+                    }
+                });
+            } else {
+                // 訂單不需要這個食材，彈回去
+                this.tweens.add({ targets: foodObj, x: 400, y: 350, duration: 200, ease: 'Power2' });
+                
+                // 盤子震動表示錯誤
+                this.tweens.add({
+                    targets: this.plate, x: this.plate.x + 10, yoyo: true, repeat: 3, duration: 50
+                });
+            }
+        }
+
+        checkRecipeCompletion() {
+            this.updateRecipeUI();
+            
+            // 檢查是否所有需求都達標
+            let isComplete = true;
+            for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
+                if ((this.currentProgress[key] || 0) < needed) {
+                    isComplete = false; break;
+                }
+            }
+
+            if (isComplete) {
+                this.score += 100;
+                this.scoreText.setText(`⭐ 分數: ${this.score}`);
+                
+                // 出餐成功特效
+                const successText = this.add.text(400, 260, '出餐完成！', { fontSize: '32px', fill: '#48bb78', fontStyle: 'bold' }).setOrigin(0.5);
+                this.tweens.add({
+                    targets: successText, y: 150, alpha: 0, duration: 1000,
+                    onComplete: () => { successText.destroy(); this.generateNewRecipe(); }
+                });
+            }
+        }
+
+        // ==========================
+        // 材質與網路邏輯
+        // ==========================
         generateGameTextures() {
             let g = this.make.graphics({ x: 0, y: 0, add: false });
 
-            // --- 🍗 繪製木頭餐桌背景 ---
-            g.fillStyle(0x744210, 1); // 深木色
-            g.fillRect(0, 0, 800, 480);
-            // 繪製木紋線條
+            // 木頭餐桌
+            g.fillStyle(0x744210, 1); g.fillRect(0, 0, 800, 480);
             g.lineStyle(2, 0x5a300a, 0.5);
-            for(let i=0; i<15; i++) {
-                let y = i * 40;
-                g.moveTo(0, y);
-                g.lineTo(800, y + (Math.random()*10 - 5));
-            }
+            for(let i=0; i<15; i++) { g.moveTo(0, i*40); g.lineTo(800, i*40 + (Math.random()*10 - 5)); }
             g.strokePath();
-            // 桌子邊緣陰影
-            g.lineStyle(10, 0x000000, 0.3);
-            g.strokeRect(5, 5, 790, 470);
-            g.generateTexture('table_bg', 800, 480);
-            g.clear();
+            g.lineStyle(10, 0x000000, 0.3); g.strokeRect(5, 5, 790, 470);
+            g.generateTexture('table_bg', 800, 480); g.clear();
 
-            // 🍅 番茄
+            // 🍽️ 盤子
+            g.fillStyle(0xf7fafc, 1); g.fillCircle(60, 60, 55); // 白底
+            g.lineStyle(6, 0xe2e8f0); g.strokeCircle(60, 60, 55); // 灰邊
+            g.lineStyle(2, 0xcbd5e0); g.strokeCircle(60, 60, 40); // 內圈裝飾
+            g.generateTexture('plate', 120, 120); g.clear();
+
+            // 食材
             g.fillStyle(0xe53e3e, 1); g.fillCircle(50, 55, 30);
             g.fillStyle(0x38a169, 1); g.fillRect(48, 12, 4, 15); g.generateTexture('tomato', 100, 100); g.clear();
 
-            // 🥕 胡蘿蔔
             g.fillStyle(0xdd6b20, 1); g.fillTriangle(35, 35, 65, 35, 50, 85);
             g.fillStyle(0x38a169, 1); g.fillRect(48, 15, 4, 20); g.generateTexture('carrot', 100, 100); g.clear();
 
-            // 🥬 高麗菜
             g.fillStyle(0x2f855a, 1); g.fillCircle(50, 50, 35);
             g.fillStyle(0x68d391, 1); g.fillCircle(50, 50, 20); g.generateTexture('cabbage', 100, 100); g.destroy();
         }
@@ -202,7 +321,6 @@
         connectMQTT() {
             mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { clientId: uniqueClientId + '_' + Date.now() });
             mqttClient.on('connect', () => {
-                logToScreen("🟢 廚房已上線");
                 this.statusText.setText('🟢 已連線');
                 mqttClient.subscribe(roomTopic);
             });
@@ -230,10 +348,11 @@
 
         receiveFood(foodKey, senderName, direction) {
             let startX = (direction === 'right') ? -50 : 850;
-            const food = this.add.image(startX, 240, foodKey).setInteractive({ useHandCursor: true });
+            const food = this.add.image(startX, 350, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food);
-            this.tweens.add({ targets: food, x: 400, duration: 600, ease: 'Back.easeOut' });
-            logToScreen(`📥 收到來自 ${senderName} 的食材`);
+            
+            // 飛入動畫，停在偏下方的待機區，避免直接砸在盤子上
+            this.tweens.add({ targets: food, x: 400 + (Math.random()*100-50), duration: 600, ease: 'Back.easeOut' });
         }
     }
 
@@ -246,10 +365,9 @@
         if (!roomInput) return alert("請輸入房號");
 
         gameRoomId = roomInput;
-        playerNickname = nameInput || '手機大廚';
+        playerNickname = nameInput || '出餐大師';
         roomTopic = `tw_game/family_style/room_${gameRoomId}`;
 
-        // 隱藏大廳與漂浮背景
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('lobby-bg').style.display = 'none';
 
