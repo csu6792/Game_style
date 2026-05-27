@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Family Style - 終極修復版</title>
+    <title>Family Style - 內建 Console 除錯版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
@@ -11,6 +11,7 @@
             margin: 0; 
             background-color: #1a202c; 
             display: flex; 
+            flex-direction: column;
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
@@ -21,9 +22,8 @@
         #game-wrapper {
             position: relative;
             width: 800px;
-            height: 600px;
+            height: 480px; /* 稍微縮小高度，留空間給 Console */
         }
-        /* 房間輸入畫面 */
         #lobby {
             position: absolute;
             top: 50%;
@@ -48,9 +48,23 @@
         #join-btn {
             width: 100%; padding: 12px; border-radius: 6px; border: none;
             background-color: #48bb78; color: white; font-size: 16px; font-weight: bold;
-            cursor: pointer; transition: background 0.2s;
+            cursor: pointer;
         }
-        #join-btn:hover { background-color: #38a169; }
+        /* 網頁內建 Console 樣式 */
+        #visual-console {
+            width: 800px;
+            height: 120px;
+            background-color: #000000;
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+            margin-top: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -68,18 +82,30 @@
         </div>
         <button id="join-btn">進入廚房 ➔</button>
     </div>
-    
     <div id="game-container"></div>
 </div>
+
+<div id="visual-console"></div>
+
 <script>
-        var vConsole = new window.VConsole();
-    </script>
-<script>
-    // 檢查外部資源是否成功載入，若失敗立刻彈窗提示
-    window.onload = function() {
-        if (typeof Phaser === 'undefined') alert('⚠️ Phaser 引擎載入失敗，請檢查網路連線！');
-        if (typeof mqtt === 'undefined') alert('⚠️ MQTT 函式庫載入失敗，請檢查網路連線！');
+    // ==========================================
+    // 0. 核心除錯機制 (劫持 Console 輸出)
+    // ==========================================
+    const consoleDiv = document.getElementById('visual-console');
+    function logToScreen(msg, isError = false) {
+        const time = new Date().toLocaleTimeString();
+        const color = isError ? '#fc8181' : '#68d391';
+        consoleDiv.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
+        consoleDiv.scrollTop = consoleDiv.scrollHeight; // 自動捲動到最下方
+    }
+
+    // 監聽全域 JavaScript 錯誤
+    window.onerror = function(message, source, lineno, colno, error) {
+        logToScreen(`❌ 程式崩潰: ${message} (第 ${lineno} 行)`, true);
+        return false;
     };
+
+    logToScreen("🚀 系統初始化中... 內建 Console 已就緒。");
 
     // ==========================================
     // 1. 內建 SVG 蔬菜素材
@@ -104,153 +130,138 @@
         constructor() { super('GameScene'); }
 
         preload() {
+            logToScreen("ℹ️ Phaser 開始載入蔬菜素材...");
             this.load.svg('tomato', svgTomato);
             this.load.svg('carrot', svgCarrot);
             this.load.svg('cabbage', svgCabbage);
         }
 
         create() {
-            // 繪製遊戲背景
-            this.add.rectangle(400, 300, 800, 600, 0x2d3748);
+            logToScreen("ℹ️ Phaser 場景初始化成功，繪製畫布中。");
+            this.add.rectangle(400, 240, 800, 480, 0x2d3748);
             
-            // 左右飛出邊界提示
-            this.add.rectangle(50, 300, 100, 600, 0x000000, 0.2);
-            this.add.rectangle(750, 300, 100, 600, 0x000000, 0.2);
-            this.add.text(20, 300, '◄ 丟', { fontSize: '32px', fill: '#fff', alpha: 0.5 }).setOrigin(0.5);
-            this.add.text(780, 300, '丟 ►', { fontSize: '32px', fill: '#fff', alpha: 0.5 }).setOrigin(0.5);
+            // 邊界提示
+            this.add.rectangle(50, 240, 100, 480, 0x000000, 0.2);
+            this.add.rectangle(750, 240, 100, 480, 0x000000, 0.2);
+            this.add.text(20, 240, '◄ 丟', { fontSize: '32px', fill: '#fff', alpha: 0.5 }).setOrigin(0.5);
+            this.add.text(780, 240, '丟 ►', { fontSize: '32px', fill: '#fff', alpha: 0.5 }).setOrigin(0.5);
 
-            // UI 狀態文字
-            this.statusText = this.add.text(400, 30, '正在初始化 MQTT...', { fontSize: '20px', fill: '#ecc94b' }).setOrigin(0.5);
-            this.add.text(400, 70, `大廚: ${playerNickname} | 房間: ${gameRoomId}`, { fontSize: '16px', fill: '#a0aec0' }).setOrigin(0.5);
+            this.statusText = this.add.text(400, 30, '正在連線至伺服器...', { fontSize: '20px', fill: '#ecc94b' }).setOrigin(0.5);
 
-            // 🛒 按鈕：生成食材
-            const spawnBtn = this.add.text(400, 520, '🛒 點我拿食材', { fontSize: '24px', fill: '#fff', backgroundColor: '#3182ce', padding: { x: 20, y: 10 } })
+            // 🛒 按鈕
+            const spawnBtn = this.add.text(400, 420, '🛒 點我拿食材', { fontSize: '24px', fill: '#fff', backgroundColor: '#3182ce', padding: { x: 20, y: 10 } })
                 .setOrigin(0.5).setInteractive({ useHandCursor: true });
             
             spawnBtn.on('pointerdown', () => {
                 const foods = ['tomato', 'carrot', 'cabbage'];
                 const randomFood = foods[Math.floor(Math.random() * foods.length)];
-                this.spawnFood(randomFood, 400, 300);
+                this.spawnFood(randomFood, 400, 240);
             });
 
-            // 處理物件拖曳
             this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
                 gameObject.x = dragX;
                 gameObject.y = dragY;
             });
 
             this.input.on('dragend', (pointer, gameObject) => {
-                // 判斷是否拖出左右邊界
                 if (gameObject.x < 100 || gameObject.x > 700) {
                     this.sendFood(gameObject.texture.key);
                     gameObject.destroy(); 
                 } else {
-                    // 沒成功丟出去則彈回中央
-                    this.tweens.add({ targets: gameObject, x: 400, y: 300, duration: 200, ease: 'Power2' });
+                    this.tweens.add({ targets: gameObject, x: 400, y: 240, duration: 200, ease: 'Power2' });
                 }
             });
 
-            // 啟動 MQTT 連線
             this.connectMQTT();
         }
 
         connectMQTT() {
-            try {
-                if (typeof mqtt === 'undefined') {
-                    this.statusText.setText('🔴 錯誤：MQTT 函式庫未載入，無法連線');
-                    return;
-                }
-
-                // 使用極度穩定的 v4 連線語法
-                mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { 
-                    clientId: uniqueClientId + '_' + Date.now(),
-                    connectTimeout: 5000
-                });
-
-                mqttClient.on('connect', () => {
-                    this.statusText.setText('🟢 廚房已連線！快叫朋友輸入同房號加入');
-                    mqttClient.subscribe(roomTopic);
-                });
-
-                mqttClient.on('error', (err) => {
-                    this.statusText.setText('🔴 連線失敗: ' + err.message);
-                });
-
-                mqttClient.on('message', (topic, message) => {
-                    if (topic === roomTopic) {
-                        try {
-                            const data = JSON.parse(message.toString());
-                            // 排除自己發送的訊息
-                            if (data.clientId !== uniqueClientId) {
-                                this.receiveFood(data.foodItem, data.senderName);
-                            }
-                        } catch(e) {
-                            console.error("解析 MQTT 訊息失敗", e);
-                        }
-                    }
-                });
-
-            } catch (error) {
-                this.statusText.setText('🔴 MQTT 初始化發生崩潰');
-                console.error(error);
+            logToScreen(`📡 嘗試連線至 MQTT 伺服器... 頻道 ID: ${roomTopic}`);
+            
+            if (typeof mqtt === 'undefined') {
+                logToScreen("❌ 錯誤：找不到 mqtt 變數，CDN 可能被瀏覽器封鎖了！", true);
+                this.statusText.setText('🔴 連線失敗');
+                return;
             }
+
+            mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { 
+                clientId: uniqueClientId + '_' + Date.now(),
+                connectTimeout: 5000
+            });
+
+            mqttClient.on('connect', () => {
+                logToScreen("🟢 MQTT 連線成功！已成功訂閱房間頻道。");
+                this.statusText.setText('🟢 廚房已連線！');
+                mqttClient.subscribe(roomTopic);
+            });
+
+            mqttClient.on('error', (err) => {
+                logToScreen(`❌ MQTT 發生錯誤: ${err.message}`, true);
+            });
+
+            mqttClient.on('message', (topic, message) => {
+                if (topic === roomTopic) {
+                    const data = JSON.parse(message.toString());
+                    if (data.clientId !== uniqueClientId) {
+                        logToScreen(`📥 收到來自 [${data.senderName}] 送來的 ${data.foodItem}`);
+                        this.receiveFood(data.foodItem, data.senderName);
+                    }
+                }
+            });
         }
 
         sendFood(foodKey) {
             if (mqttClient && mqttClient.connected) {
+                logToScreen(`📤 正在將 ${foodKey} 丟給其他玩家...`);
                 const payload = JSON.stringify({ 
                     clientId: uniqueClientId, 
                     senderName: playerNickname, 
                     foodItem: foodKey 
                 });
-                mqttClient.publish(roomTopic, payload, { qos: 0 });
+                mqttClient.publish(roomTopic, payload);
+            } else {
+                logToScreen("⚠️ 傳送失敗：目前處於斷線狀態！", true);
             }
         }
 
         spawnFood(foodKey, x, y) {
+            logToScreen(`🍳 生產了新食材: ${foodKey}`);
             const food = this.add.image(x, y, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food);
-            food.setScale(0);
-            this.tweens.add({ targets: food, scale: 1, duration: 300, ease: 'Back.easeOut' });
         }
 
         receiveFood(foodKey, senderName) {
-            // 顯示文字提示誰送過來的
-            const tipText = this.add.text(400, 150, `來自 ${senderName} 的食材！`, { fontSize: '18px', fill: '#48bb78' }).setOrigin(0.5);
-            this.time.delayedCall(1500, () => { tipText.destroy(); });
-
-            // 生成食材並做掉落彈跳動畫
             const food = this.add.image(400, -50, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food);
-            this.tweens.add({ targets: food, y: 300, duration: 600, ease: 'Bounce.easeOut' });
+            this.tweens.add({ targets: food, y: 240, duration: 500, ease: 'Bounce.easeOut' });
         }
     }
 
     // ==========================================
-    // 4. 大廳按鈕事件監聽
+    // 4. 大廳按鈕點擊
     // ==========================================
     document.getElementById('join-btn').addEventListener('click', () => {
         const roomInput = document.getElementById('room-input').value.trim();
         const nameInput = document.getElementById('name-input').value.trim();
 
         if (!roomInput) {
-            alert('請輸入房間號碼！');
+            logToScreen("⚠️ 請輸入有效的房間號碼", true);
             return;
         }
 
         gameRoomId = roomInput;
-        playerNickname = nameInput || '無名大廚_' + Math.floor(Math.random() * 100);
+        playerNickname = nameInput || '匿名大廚';
         roomTopic = `tw_game/family_style/room_${gameRoomId}`;
 
-        // 隱藏登入 UI
+        logToScreen(`🚪 正在進入房間 [${gameRoomId}]，暱稱設定為: ${playerNickname}`);
         document.getElementById('lobby').style.display = 'none';
 
-        // 啟動 Phaser 遊戲
+        // 啟動遊戲
         const config = {
             type: Phaser.AUTO,
             width: 800,
-            height: 600,
-            parent: 'game-container', // 指定注入到專用 Div 中
+            height: 480,
+            parent: 'game-container',
             scene: GameScene
         };
         new Phaser.Game(config);
