@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 瘋狂出餐版</title>
+    <title>Family Style - 純文字版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
@@ -15,6 +15,7 @@
             touch-action: none; position: relative;
         }
 
+        /* --- 1. 大廳 SVG 動態背景 --- */
         #lobby-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
@@ -26,6 +27,7 @@
             100% { transform: translateY(-20vh) rotate(360deg); }
         }
 
+        /* --- 2. 大廳 UI 介面 --- */
         #game-wrapper { position: relative; width: 100%; max-width: 800px; z-index: 1; }
         #game-container { width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         
@@ -59,7 +61,7 @@
 
     <div id="game-wrapper">
         <div id="lobby">
-            <h2>🍳 聯機大廚房</h2>
+            <h2>聯機大廚房</h2>
             <div class="input-group">
                 <label>房間號碼</label>
                 <input type="number" id="room-input" pattern="[0-9]*" inputmode="numeric" value="1234">
@@ -68,7 +70,7 @@
                 <label>大廚暱稱</label>
                 <input type="text" id="name-input" placeholder="例如: 小明">
             </div>
-            <button id="join-btn">開始烹飪 ➔</button>
+            <button id="join-btn">開始烹飪</button>
         </div>
         <div id="game-container"></div>
     </div>
@@ -101,7 +103,6 @@
     const uniqueClientId = 'Chef_' + Math.floor(Math.random() * 10000);
     let mqttClient = null;
 
-    // 食譜資料庫
     const RECIPE_BOOK = [
         { name: "田園沙拉", req: { cabbage: 1, tomato: 1 } },
         { name: "番茄蘿蔔湯", req: { tomato: 2, carrot: 1 } },
@@ -111,7 +112,8 @@
         { name: "胡蘿蔔汁", req: { carrot: 2 } }
     ];
 
-    const EMOJI_MAP = { tomato: '🍅', carrot: '🥕', cabbage: '🥬' };
+    // 將原本的 Emoji 對照表改為純文字對照表
+    const NAME_MAP = { tomato: '番茄', carrot: '胡蘿蔔', cabbage: '高麗菜' };
 
     // ==========================================
     // 2. Phaser 遊戲場景
@@ -120,42 +122,42 @@
         constructor() { super('GameScene'); }
 
         create() {
-            // 初始化玩家遊戲狀態
             this.score = 0;
             this.currentRecipe = null;
             this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
 
             this.generateGameTextures();
 
-            // 繪製背景與邊界
+            // 背景與餐巾邊界
             this.add.image(400, 240, 'table_bg');
             this.add.rectangle(50, 240, 100, 480, 0xffffff, 0.1);
             this.add.rectangle(750, 240, 100, 480, 0xffffff, 0.1);
             this.add.text(20, 240, '◄', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
             this.add.text(780, 240, '►', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
 
-            // 狀態與分數顯示
             this.statusText = this.add.text(780, 20, '連線中...', { fontSize: '16px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(1, 0);
-            this.scoreText = this.add.text(20, 20, '⭐ 分數: 0', { fontSize: '24px', fill: '#ecc94b', fontStyle: 'bold' });
+            this.scoreText = this.add.text(20, 20, '分數: 0', { fontSize: '24px', fill: '#ecc94b', fontStyle: 'bold' });
 
-            // 🍽️ 繪製中央出餐盤
+            // 中央出餐盤
             this.plate = this.add.image(400, 260, 'plate');
             this.add.text(400, 260, '出餐區', { fontSize: '18px', fill: '#a0aec0' }).setOrigin(0.5).setAlpha(0.5);
 
-            // 📜 繪製食譜 UI
-            const recipeBg = this.add.rectangle(400, 60, 360, 90, 0x2d3748, 0.9).setStrokeStyle(4, 0x4a5568).setScrollFactor(0);
+            // 食譜 UI
+            const recipeBg = this.add.rectangle(400, 60, 360, 90, 0x2d3748, 0.9).setStrokeStyle(4, 0x4a5568);
             this.recipeTitleText = this.add.text(400, 35, '準備中...', { fontSize: '22px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(0.5);
             this.recipeItemsText = this.add.text(400, 70, '', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
             
-            // 🛒 拿取食材按鈕
+            // 拿取食材按鈕
             const spawnBtn = this.add.container(400, 430);
             const btnBg = this.add.rectangle(0, 0, 180, 50, 0x3182ce, 1).setInteractive({ useHandCursor: true });
-            const btnText = this.add.text(0, 0, '🛒 拿取食材', { fontSize: '20px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+            const btnText = this.add.text(0, 0, '拿取食材', { fontSize: '20px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
             spawnBtn.add([btnBg, btnText]);
             
             btnBg.on('pointerdown', () => {
                 const foods = ['tomato', 'carrot', 'cabbage'];
-                this.spawnFood(foods[Math.floor(Math.random() * foods.length)], 400, 350);
+                const rx = 400 + (Math.random() * 60 - 30);
+                const ry = 360 + (Math.random() * 40 - 20);
+                this.spawnFood(foods[Math.floor(Math.random() * foods.length)], rx, ry);
                 btnBg.setFillStyle(0x2b6cb0);
             });
             btnBg.on('pointerup', () => btnBg.setFillStyle(0x3182ce));
@@ -163,19 +165,17 @@
             // 拖曳處理邏輯
             this.input.on('drag', (p, obj, dx, dy) => { 
                 obj.x = dx; obj.y = dy; 
-                obj.setScale(1.2); obj.setAlpha(0.8); 
+                obj.setScale(1.1); obj.setAlpha(0.9); 
             });
             
             this.input.on('dragend', (p, obj) => {
                 obj.setScale(1); obj.setAlpha(1);
                 
-                // 1. 判斷是否丟進中央盤子 (容錯距離 80px)
                 const distToPlate = Phaser.Math.Distance.Between(obj.x, obj.y, this.plate.x, this.plate.y);
                 
                 if (distToPlate < 80) {
                     this.handleCookingDrop(obj);
                 } 
-                // 2. 判斷是否傳給隊友 (往左右扔)
                 else if (obj.x > 700) { 
                     this.sendFood(obj.texture.key, 'right'); 
                     obj.destroy(); 
@@ -184,53 +184,37 @@
                     this.sendFood(obj.texture.key, 'left'); 
                     obj.destroy(); 
                 } 
-                // 3. 哪裡都沒去，彈回下方
-                else { 
-                    this.tweens.add({ targets: obj, x: 400, y: 350, duration: 200, ease: 'Power2' }); 
+                else {
+                    obj.x = Phaser.Math.Clamp(obj.x, 60, 740);
+                    obj.y = Phaser.Math.Clamp(obj.y, 40, 440);
                 }
             });
 
             this.connectMQTT();
-            this.generateNewRecipe(); // 產生第一張訂單
+            this.generateNewRecipe();
         }
 
         // ==========================
-        // 核心訂單邏輯
+        // 訂單邏輯
         // ==========================
         generateNewRecipe() {
-            // 隨機抽一張食譜
             const randomIdx = Math.floor(Math.random() * RECIPE_BOOK.length);
             this.currentRecipe = JSON.parse(JSON.stringify(RECIPE_BOOK[randomIdx]));
-            
-            // 清空進度
             this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
             this.updateRecipeUI();
 
-            // 提示動畫
-            this.recipeTitleText.setScale(1.5);
+            this.recipeTitleText.setScale(1.3);
             this.tweens.add({ targets: this.recipeTitleText, scale: 1, duration: 300, ease: 'Bounce.easeOut' });
         }
 
         updateRecipeUI() {
             if (!this.currentRecipe) return;
-            
-            this.recipeTitleText.setText(`📝 訂單：${this.currentRecipe.name}`);
-            
-            let reqStr = "";
-            for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
-                let current = this.currentProgress[key] || 0;
-                let color = current >= needed ? '#48bb78' : '#ffffff'; // 完成顯示綠色
-                let check = current >= needed ? '✓' : '';
-                reqStr += `[color=${color}]${EMOJI_MAP[key]} ${current}/${needed}${check}[/color]   `;
-            }
-            
-            // 使用 Phaser 內建的簡單色碼標籤系統來上色 (需要套用 bbcode 解析，這裡用土法煉鋼或單純字串)
-            // 為了確保手機端相容，這裡直接組成純文字字串
+            this.recipeTitleText.setText(`訂單：${this.currentRecipe.name}`);
             let pureText = "";
             for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
                 let current = this.currentProgress[key] || 0;
-                let check = current >= needed ? '✔' : '';
-                pureText += `${EMOJI_MAP[key]} ${current}/${needed} ${check}  `;
+                let check = current >= needed ? '(完成)' : '';
+                pureText += `${NAME_MAP[key]} ${current}/${needed} ${check}  `;
             }
             this.recipeItemsText.setText(pureText);
         }
@@ -241,10 +225,7 @@
             const current = this.currentProgress[foodKey] || 0;
 
             if (current < needed) {
-                // 是訂單需要的食材！
                 this.currentProgress[foodKey]++;
-                
-                // 丟進盤子的動畫
                 this.tweens.add({
                     targets: foodObj, x: this.plate.x, y: this.plate.y, scale: 0, duration: 200,
                     onComplete: () => {
@@ -253,32 +234,21 @@
                     }
                 });
             } else {
-                // 訂單不需要這個食材，彈回去
-                this.tweens.add({ targets: foodObj, x: 400, y: 350, duration: 200, ease: 'Power2' });
-                
-                // 盤子震動表示錯誤
-                this.tweens.add({
-                    targets: this.plate, x: this.plate.x + 10, yoyo: true, repeat: 3, duration: 50
-                });
+                this.tweens.add({ targets: this.plate, x: this.plate.x + 8, yoyo: true, repeat: 3, duration: 40 });
+                this.tweens.add({ targets: foodObj, x: foodObj.x + (foodObj.x > 400 ? 40 : -40), duration: 200 });
             }
         }
 
         checkRecipeCompletion() {
             this.updateRecipeUI();
-            
-            // 檢查是否所有需求都達標
             let isComplete = true;
             for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
-                if ((this.currentProgress[key] || 0) < needed) {
-                    isComplete = false; break;
-                }
+                if ((this.currentProgress[key] || 0) < needed) { isComplete = false; break; }
             }
 
             if (isComplete) {
                 this.score += 100;
-                this.scoreText.setText(`⭐ 分數: ${this.score}`);
-                
-                // 出餐成功特效
+                this.scoreText.setText(`分數: ${this.score}`);
                 const successText = this.add.text(400, 260, '出餐完成！', { fontSize: '32px', fill: '#48bb78', fontStyle: 'bold' }).setOrigin(0.5);
                 this.tweens.add({
                     targets: successText, y: 150, alpha: 0, duration: 1000,
@@ -288,12 +258,10 @@
         }
 
         // ==========================
-        // 材質與網路邏輯
+        // 繪圖與網路
         // ==========================
         generateGameTextures() {
             let g = this.make.graphics({ x: 0, y: 0, add: false });
-
-            // 木頭餐桌
             g.fillStyle(0x744210, 1); g.fillRect(0, 0, 800, 480);
             g.lineStyle(2, 0x5a300a, 0.5);
             for(let i=0; i<15; i++) { g.moveTo(0, i*40); g.lineTo(800, i*40 + (Math.random()*10 - 5)); }
@@ -301,13 +269,11 @@
             g.lineStyle(10, 0x000000, 0.3); g.strokeRect(5, 5, 790, 470);
             g.generateTexture('table_bg', 800, 480); g.clear();
 
-            // 🍽️ 盤子
-            g.fillStyle(0xf7fafc, 1); g.fillCircle(60, 60, 55); // 白底
-            g.lineStyle(6, 0xe2e8f0); g.strokeCircle(60, 60, 55); // 灰邊
-            g.lineStyle(2, 0xcbd5e0); g.strokeCircle(60, 60, 40); // 內圈裝飾
+            g.fillStyle(0xf7fafc, 1); g.fillCircle(60, 60, 55);
+            g.lineStyle(6, 0xe2e8f0); g.strokeCircle(60, 60, 55);
+            g.lineStyle(2, 0xcbd5e0); g.strokeCircle(60, 60, 40);
             g.generateTexture('plate', 120, 120); g.clear();
 
-            // 食材
             g.fillStyle(0xe53e3e, 1); g.fillCircle(50, 55, 30);
             g.fillStyle(0x38a169, 1); g.fillRect(48, 12, 4, 15); g.generateTexture('tomato', 100, 100); g.clear();
 
@@ -321,7 +287,7 @@
         connectMQTT() {
             mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { clientId: uniqueClientId + '_' + Date.now() });
             mqttClient.on('connect', () => {
-                this.statusText.setText('🟢 已連線');
+                this.statusText.setText('已連線');
                 mqttClient.subscribe(roomTopic);
             });
             mqttClient.on('message', (topic, message) => {
@@ -343,16 +309,17 @@
         spawnFood(foodKey, x, y) {
             const food = this.add.image(x, y, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food);
-            food.setScale(0); this.tweens.add({ targets: food, scale: 1, duration: 200 });
+            food.setScale(0); this.tweens.add({ targets: food, scale: 1, duration: 150 });
         }
 
         receiveFood(foodKey, senderName, direction) {
             let startX = (direction === 'right') ? -50 : 850;
-            const food = this.add.image(startX, 350, foodKey).setInteractive({ useHandCursor: true });
+            let targetY = 200 + (Math.random() * 180);
+            const food = this.add.image(startX, targetY, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food);
             
-            // 飛入動畫，停在偏下方的待機區，避免直接砸在盤子上
-            this.tweens.add({ targets: food, x: 400 + (Math.random()*100-50), duration: 600, ease: 'Back.easeOut' });
+            let targetX = (direction === 'right') ? 180 : 620;
+            this.tweens.add({ targets: food, x: targetX, duration: 500, ease: 'Back.easeOut' });
         }
     }
 
