@@ -3,19 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 音樂與開始畫面版</title>
+    <title>Family Style - 完美流程版</title>
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; font-family: 'Russo One', 'Microsoft JhengHei', sans-serif; }
         body { margin: 0; padding: 0; background-color: #10141d; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; color: white; touch-action: none; position: relative; }
-        #lobby-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #2d3748 0%, #10141d 100%); z-index: 0; overflow: hidden; }
+        
+        /* 背景動畫 */
+        #lobby-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #2d3748 0%, #10141d 100%); z-index: 0; overflow: hidden; transition: opacity 0.5s; }
         .floating-svg { position: absolute; opacity: 0.15; animation: float 15s infinite linear; }
         @keyframes float { 0% { transform: translateY(110vh) rotate(0deg) scale(0.8); } 50% { transform: scale(1.1); opacity: 0.25; } 100% { transform: translateY(-20vh) rotate(360deg) scale(0.8); } }
+        
         #game-wrapper { position: relative; width: 100%; max-width: 800px; z-index: 1; padding: 10px; }
-        #game-container { width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.7), 0 0 20px rgba(246, 173, 85, 0.2); border: 4px solid #4a5568; }
-        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(26, 32, 44, 0.85); padding: 40px; border-radius: 25px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); text-align: center; z-index: 10; width: 90%; max-width: 380px; }
+        #game-container { width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.7), 0 0 20px rgba(246, 173, 85, 0.2); border: 4px solid #4a5568; display: none; }
+        
+        /* 初始 START 畫面 */
+        #start-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center; width: 100%; }
+        .huge-btn { padding: 20px 60px; font-size: 36px; border-radius: 50px; background: linear-gradient(180deg, #f6ad55 0%, #dd6b20 100%); color: white; border: 4px solid #fff; cursor: pointer; box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 8px 0px #9c4221; font-weight: bold; transition: all 0.1s; text-shadow: 0 2px 4px rgba(0,0,0,0.4); letter-spacing: 2px; }
+        .huge-btn:active { transform: translateY(8px); box-shadow: 0 5px 15px rgba(0,0,0,0.6), 0 0px 0px #9c4221; }
+
+        /* 輸入名稱大廳 */
+        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(26, 32, 44, 0.85); padding: 40px; border-radius: 25px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); text-align: center; z-index: 10; width: 90%; max-width: 380px; display: none; }
         #lobby h2 { margin-top: 0; color: #f6ad55; font-size: 32px; text-shadow: 0 4px 0px #744210, 0 0 10px rgba(246, 173, 85, 0.5); letter-spacing: 2px; }
         .input-group { margin-bottom: 25px; text-align: left; }
         .input-group label { display: block; margin-bottom: 10px; color: #cbd5e0; font-size: 16px; letter-spacing: 1px;}
@@ -28,8 +38,15 @@
 </head>
 <body>
 
+    <audio id="bgm-player" src="bgm.mp3" loop preload="auto"></audio>
+
     <div id="lobby-bg"></div>
+    
     <div id="game-wrapper">
+        <div id="start-screen">
+            <button class="huge-btn" id="first-start-btn">▶ 開始遊戲</button>
+        </div>
+
         <div id="lobby">
             <h2>聯機大廚房</h2>
             <div class="input-group">
@@ -40,12 +57,14 @@
                 <label>大廚暱稱 (Nickname)</label>
                 <input type="text" id="name-input" placeholder="例如: 小明">
             </div>
-            <button id="join-btn">連線進入遊戲</button>
+            <button id="join-btn">進入廚房 START</button>
         </div>
+
         <div id="game-container"></div>
     </div>
 
 <script>
+    // --- 繪製大廳背景浮動動畫 ---
     const lobbyBg = document.getElementById('lobby-bg');
     const svgIcons = [
         `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#e53e3e"/><path d="M 50 20 L 50 10" stroke="#276749" stroke-width="6"/></svg>`, 
@@ -59,6 +78,19 @@
         lobbyBg.appendChild(div);
     }
 
+    // --- UI 流程控制 ---
+    document.getElementById('first-start-btn').addEventListener('click', () => {
+        // 1. 播放音樂 (解鎖瀏覽器限制)
+        const bgm = document.getElementById('bgm-player');
+        bgm.volume = 0.4;
+        bgm.play().catch(e => console.warn("找不到 bgm.mp3 或瀏覽器阻擋:", e));
+
+        // 2. 切換畫面：隱藏初始按鈕，顯示輸入大廳
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('lobby').style.display = 'block';
+    });
+
+    // --- 全域變數 ---
     let gameRoomId = "", playerNickname = "", roomTopic = "";
     const uniqueClientId = 'Chef_' + Math.floor(Math.random() * 10000);
     let mqttClient = null;
@@ -70,95 +102,14 @@
     ];
     const NAME_MAP = { tomato: '番茄', carrot: '胡蘿蔔', cabbage: '高麗菜' };
 
-    // ==========================================
-    // 1. 預載場景 (載入音效與材質)
-    // ==========================================
-    class PreloadScene extends Phaser.Scene {
-        constructor() { super('PreloadScene'); }
-
-        preload() {
-            this.add.text(400, 240, '載入遊戲素材中...', { fontSize: '24px', fill: '#cbd5e0', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5);
-            
-            // 載入 BGM，若本地沒有這個檔案會在控制台報錯，但不影響遊戲繼續運行
-            this.load.audio('bgm', 'bgm.mp3'); 
-
-            // 在預載時順便產生所有繪圖材質
-            this.generateGameTextures();
-        }
-
-        create() {
-            this.scene.start('StartScene');
-        }
-
-        generateGameTextures() {
-            let g = this.make.graphics({ x: 0, y: 0, add: false });
-            g.fillStyle(0x654321, 1); g.fillRect(0, 0, 800, 480);
-            g.lineStyle(3, 0x4e341b, 0.6); for(let i=0; i<18; i++) { let y = i * 30; g.moveTo(0, y); g.lineTo(800, y + (Math.random()*15 - 7)); } g.strokePath(); 
-            g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4); g.fillRect(0, 0, 800, 480); g.generateTexture('table_bg', 800, 480); g.clear();
-
-            g.fillStyle(0x4a5568, 1); g.fillRoundedRect(20, 20, 60, 70, 5); g.fillStyle(0x2d3748, 1); g.fillRect(25, 30, 50, 50); 
-            g.fillStyle(0x718096, 1); g.fillRoundedRect(15, 15, 70, 10, 3); g.lineStyle(2, 0x1a202c, 0.5); g.moveTo(35, 40); g.lineTo(35, 70); g.moveTo(50, 40); g.lineTo(50, 70); g.moveTo(65, 40); g.lineTo(65, 70); g.strokePath();
-            g.generateTexture('trash_bin', 100, 100); g.clear();
-
-            g.fillStyle(0x000000, 0.2); g.fillCircle(65, 68, 58); g.fillStyle(0xfffffd, 1); g.fillCircle(60, 60, 58);
-            g.lineStyle(6, 0xdcdcdc); g.strokeCircle(60, 60, 42); g.lineStyle(2, 0xbfbfbf); g.strokeCircle(60, 60, 45);
-            g.fillStyle(0xffffff, 0.8); g.fillEllipse(40, 40, 20, 10); g.generateTexture('plate_3d', 130, 130); g.clear();
-
-            g.fillStyle(0x8B4513, 1); g.fillRoundedRect(0, 0, 380, 110, 8); g.lineStyle(4, 0x5a300a); g.strokeRoundedRect(2, 2, 376, 106, 8);
-            g.fillStyle(0x1a202c, 1); g.fillRoundedRect(10, 10, 360, 90, 5); g.fillStyle(0xffffff, 0.05); for(let i=0; i<50; i++) { g.fillCircle(10 + Math.random()*360, 10+Math.random()*90, 1); }
-            g.generateTexture('chalkboard', 380, 110); g.clear();
-
-            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); g.fillStyle(0x3182ce, 1); g.fillRoundedRect(0, 0, 250, 55, 10); g.fillStyle(0x63b3ed, 0.5); g.fillRoundedRect(5, 5, 240, 15, 5); g.generateTexture('btn_blue_up', 250, 60); g.clear();
-            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); g.fillStyle(0x2c5282, 1); g.fillRoundedRect(0, 5, 250, 55, 10); g.generateTexture('btn_blue_down', 250, 60); g.clear();
-
-            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 59, 32); g.fillStyle(0xe53e3e, 1); g.fillCircle(50, 55, 30); g.fillStyle(0xfc8181, 0.6); g.fillEllipse(35, 40, 10, 5); g.fillStyle(0x276749, 1); g.fillRect(47, 10, 6, 18); g.fillStyle(0x38a169, 1); g.fillTriangle(50, 25, 25, 30, 75, 30); g.generateTexture('tomato', 100, 100); g.clear();
-            g.fillStyle(0x000000, 0.2); g.fillTriangle(39, 39, 69, 39, 54, 89); g.fillStyle(0xdd6b20, 1); g.fillTriangle(35, 35, 65, 35, 50, 85); g.lineStyle(2, 0xc05621, 0.8); g.moveTo(43, 45); g.lineTo(55, 48); g.moveTo(45, 60); g.lineTo(53, 62); g.strokePath(); g.fillStyle(0x38a169, 1); g.fillRect(47, 15, 6, 20); g.fillCircle(44, 18, 5); g.fillCircle(56, 18, 5); g.fillCircle(50, 12, 5); g.generateTexture('carrot', 100, 100); g.clear();
-            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 54, 37); g.fillStyle(0x2f855a, 1); g.fillCircle(50, 50, 35); g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 25); g.fillStyle(0x9ae6b4, 1); g.fillCircle(50, 50, 15); g.lineStyle(2, 0xffffff, 0.2); g.strokeCircle(50, 50, 25); g.strokeCircle(50, 50, 15); g.generateTexture('cabbage', 100, 100); g.destroy();
-        }
-    }
-
-    // ==========================================
-    // 2. 開始畫面場景 (點擊後播放音樂進入遊戲)
-    // ==========================================
-    class StartScene extends Phaser.Scene {
-        constructor() { super('StartScene'); }
-
-        create() {
-            this.add.image(400, 240, 'table_bg');
-            this.add.rectangle(400, 240, 800, 480, 0x000000, 0.5);
-
-            this.add.text(400, 160, `歡迎大廚：${playerNickname}`, { fontSize: '32px', fill: '#f6ad55', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5);
-            this.add.text(400, 200, `房間號碼：${gameRoomId}`, { fontSize: '20px', fill: '#cbd5e0', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5);
-
-            const startBtn = this.add.container(400, 300);
-            const btnBg = this.add.rectangle(0, 0, 250, 70, 0x48bb78).setInteractive({ useHandCursor: true });
-            const btnShadow = this.add.rectangle(0, 6, 250, 70, 0x22543d);
-            const btnText = this.add.text(0, 0, '▶ 進入廚房', { fontSize: '26px', fill: '#ffffff', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5);
-            
-            startBtn.add([btnShadow, btnBg, btnText]);
-
-            btnBg.on('pointerdown', () => {
-                btnBg.y = 6; btnText.y = 6;
-                // 播放背景音樂
-                if (this.cache.audio.exists('bgm')) {
-                    this.sound.play('bgm', { loop: true, volume: 0.4 });
-                } else {
-                    console.warn("找不到 bgm.mp3，無音樂模式啟動。");
-                }
-                
-                // 延遲一點點時間讓按鈕按下特效生效，然後進入主遊戲
-                this.time.delayedCall(150, () => {
-                    this.scene.start('GameScene');
-                });
-            });
-        }
-    }
-
-    // ==========================================
-    // 3. 主遊戲場景
-    // ==========================================
+    // --- 遊戲主場景 ---
     class GameScene extends Phaser.Scene {
         constructor() { super('GameScene'); }
+
+        preload() {
+            // 在這裡產生遊戲所需的所有素材
+            this.generateGameTextures();
+        }
 
         create() {
             this.score = 0; this.currentRecipe = null; this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
@@ -384,23 +335,57 @@
             let targetX = (direction === 'right') ? 180 + (Math.random()*60) : 620 - (Math.random()*60);
             this.tweens.add({ targets: food, x: targetX, angle: 0, duration: 700, ease: 'Quart.easeOut' });
         }
+
+        generateGameTextures() {
+            let g = this.make.graphics({ x: 0, y: 0, add: false });
+            g.fillStyle(0x654321, 1); g.fillRect(0, 0, 800, 480);
+            g.lineStyle(3, 0x4e341b, 0.6); for(let i=0; i<18; i++) { let y = i * 30; g.moveTo(0, y); g.lineTo(800, y + (Math.random()*15 - 7)); } g.strokePath(); 
+            g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4); g.fillRect(0, 0, 800, 480); g.generateTexture('table_bg', 800, 480); g.clear();
+
+            g.fillStyle(0x4a5568, 1); g.fillRoundedRect(20, 20, 60, 70, 5); g.fillStyle(0x2d3748, 1); g.fillRect(25, 30, 50, 50); 
+            g.fillStyle(0x718096, 1); g.fillRoundedRect(15, 15, 70, 10, 3); g.lineStyle(2, 0x1a202c, 0.5); g.moveTo(35, 40); g.lineTo(35, 70); g.moveTo(50, 40); g.lineTo(50, 70); g.moveTo(65, 40); g.lineTo(65, 70); g.strokePath();
+            g.generateTexture('trash_bin', 100, 100); g.clear();
+
+            g.fillStyle(0x000000, 0.2); g.fillCircle(65, 68, 58); g.fillStyle(0xfffffd, 1); g.fillCircle(60, 60, 58);
+            g.lineStyle(6, 0xdcdcdc); g.strokeCircle(60, 60, 42); g.lineStyle(2, 0xbfbfbf); g.strokeCircle(60, 60, 45);
+            g.fillStyle(0xffffff, 0.8); g.fillEllipse(40, 40, 20, 10); g.generateTexture('plate_3d', 130, 130); g.clear();
+
+            g.fillStyle(0x8B4513, 1); g.fillRoundedRect(0, 0, 380, 110, 8); g.lineStyle(4, 0x5a300a); g.strokeRoundedRect(2, 2, 376, 106, 8);
+            g.fillStyle(0x1a202c, 1); g.fillRoundedRect(10, 10, 360, 90, 5); g.fillStyle(0xffffff, 0.05); for(let i=0; i<50; i++) { g.fillCircle(10 + Math.random()*360, 10+Math.random()*90, 1); }
+            g.generateTexture('chalkboard', 380, 110); g.clear();
+
+            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); g.fillStyle(0x3182ce, 1); g.fillRoundedRect(0, 0, 250, 55, 10); g.fillStyle(0x63b3ed, 0.5); g.fillRoundedRect(5, 5, 240, 15, 5); g.generateTexture('btn_blue_up', 250, 60); g.clear();
+            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); g.fillStyle(0x2c5282, 1); g.fillRoundedRect(0, 5, 250, 55, 10); g.generateTexture('btn_blue_down', 250, 60); g.clear();
+
+            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 59, 32); g.fillStyle(0xe53e3e, 1); g.fillCircle(50, 55, 30); g.fillStyle(0xfc8181, 0.6); g.fillEllipse(35, 40, 10, 5); g.fillStyle(0x276749, 1); g.fillRect(47, 10, 6, 18); g.fillStyle(0x38a169, 1); g.fillTriangle(50, 25, 25, 30, 75, 30); g.generateTexture('tomato', 100, 100); g.clear();
+            g.fillStyle(0x000000, 0.2); g.fillTriangle(39, 39, 69, 39, 54, 89); g.fillStyle(0xdd6b20, 1); g.fillTriangle(35, 35, 65, 35, 50, 85); g.lineStyle(2, 0xc05621, 0.8); g.moveTo(43, 45); g.lineTo(55, 48); g.moveTo(45, 60); g.lineTo(53, 62); g.strokePath(); g.fillStyle(0x38a169, 1); g.fillRect(47, 15, 6, 20); g.fillCircle(44, 18, 5); g.fillCircle(56, 18, 5); g.fillCircle(50, 12, 5); g.generateTexture('carrot', 100, 100); g.clear();
+            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 54, 37); g.fillStyle(0x2f855a, 1); g.fillCircle(50, 50, 35); g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 25); g.fillStyle(0x9ae6b4, 1); g.fillCircle(50, 50, 15); g.lineStyle(2, 0xffffff, 0.2); g.strokeCircle(50, 50, 25); g.strokeCircle(50, 50, 15); g.generateTexture('cabbage', 100, 100); g.destroy();
+        }
     }
 
-    // 將三個場景都註冊進 Phaser 引擎中
+    // --- 進入正式遊戲引擎 ---
     document.getElementById('join-btn').addEventListener('click', () => {
-        const roomInput = document.getElementById('room-input').value.trim(); const nameInput = document.getElementById('name-input').value.trim();
+        const roomInput = document.getElementById('room-input').value.trim(); 
+        const nameInput = document.getElementById('name-input').value.trim();
+        
         if (!roomInput) return alert("請輸入房號 (Room ID)");
-        gameRoomId = roomInput; playerNickname = nameInput || '大廚'; roomTopic = `tw_game/family_style/room_${gameRoomId}`;
+        gameRoomId = roomInput; 
+        playerNickname = nameInput || '大廚'; 
+        roomTopic = `tw_game/family_style/room_${gameRoomId}`;
         
-        document.getElementById('lobby').style.display = 'none'; document.getElementById('lobby-bg').style.display = 'none';
+        // 隱藏 HTML 介面，顯示 Phaser 畫布
+        document.getElementById('lobby').style.display = 'none'; 
+        document.getElementById('lobby-bg').style.opacity = '0'; // 淡出背景動畫
+        setTimeout(() => document.getElementById('lobby-bg').style.display = 'none', 500);
+        document.getElementById('game-container').style.display = 'block';
         
-        // 這裡陣列的第一個場景 PreloadScene 會成為起始場景
+        // 啟動 Phaser 引擎 (僅單一場景，極簡化)
         new Phaser.Game({ 
             type: Phaser.AUTO, 
             parent: 'game-container', 
             backgroundColor: '#10141d', 
             scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 480 }, 
-            scene: [PreloadScene, StartScene, GameScene] 
+            scene: GameScene 
         });
     });
 </script>
