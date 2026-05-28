@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 終極完美版</title>
+    <title>Family Style - RWD 完美響應版</title>
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
@@ -15,26 +15,32 @@
             user-select: none; 
             font-family: 'Russo One', 'Microsoft JhengHei', sans-serif; 
         }
+        
+        /* 採用動態視埠單位 (dvw/dvh)，完美適應行動裝置流暢的網址列伸縮 */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #10141d;
+        }
+
         body { 
-            margin: 0; 
-            padding: 0; 
-            background-color: #10141d; 
             display: flex; 
-            flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            min-height: 100vh; 
-            overflow: hidden; 
+            min-height: 100dvh; 
             color: white; 
             touch-action: none; 
             position: relative; 
         }
         
-        /* 網頁大廳背景動畫 */
+        /* 網頁大廳動態背景 */
         #lobby-bg { 
             position: absolute; 
             top: 0; left: 0; 
-            width: 100%; height: 100%; 
+            width: 100dvw; height: 100dvh; 
             background: radial-gradient(circle at center, #2d3748 0%, #10141d 100%); 
             z-index: 0; 
             overflow: hidden; 
@@ -46,62 +52,67 @@
             animation: float 15s infinite linear; 
         }
         @keyframes float { 
-            0% { transform: translateY(110vh) rotate(0deg) scale(0.8); } 
+            0% { transform: translateY(110dvh) rotate(0deg) scale(0.8); } 
             50% { transform: scale(1.1); opacity: 0.25; } 
-            100% { transform: translateY(-20vh) rotate(360deg) scale(0.8); } 
+            100% { transform: translateY(-20dvh) rotate(360deg) scale(0.8); } 
         }
         
+        /* RWD 核心：彈性包覆外框 */
         #game-wrapper { 
             position: relative; 
-            width: 100%; 
-            max-width: 800px; 
+            width: 100dvw; 
+            height: 100dvh; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
             z-index: 1; 
-            padding: 10px; 
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
+
+        /* 讓 Phaser 畫布容器完美滿版，並交由 Phaser 引擎動態計算比例 */
         #game-container { 
             width: 100%; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            box-shadow: 0 30px 60px rgba(0,0,0,0.7), 0 0 20px rgba(246, 173, 85, 0.2); 
-            border: 4px solid #4a5568; 
+            height: 100%; 
             display: none; 
+            justify-content: center;
+            align-items: center;
         }
         
-        /* 步驟 1: 初始 START 畫面 */
+        /* 步驟 1: START 畫面 RWD 最佳化 */
         #start-screen { 
             position: absolute; 
-            top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); 
-            z-index: 20; 
-            text-align: center; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 100%; 
+            height: 100%;
+            z-index: 20; 
         }
         .huge-btn { 
-            padding: 20px 60px; 
-            font-size: 36px; 
+            padding: clamp(12px, 3.5vw, 22px) clamp(30px, 8vw, 65px); 
+            font-size: clamp(20px, 5vw, 36px); 
             border-radius: 50px; 
             background: linear-gradient(180deg, #f6ad55 0%, #dd6b20 100%); 
             color: white; 
             border: 4px solid #fff; 
             cursor: pointer; 
-            box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 8px 0px #9c4221; 
+            box-shadow: 0 12px 25px rgba(0,0,0,0.6), 0 8px 0px #9c4221; 
             font-weight: bold; 
             transition: all 0.1s; 
             text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
             letter-spacing: 2px; 
+            white-space: nowrap;
         }
         .huge-btn:active { 
-            transform: translateY(8px); 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.6), 0 0px 0px #9c4221; 
+            transform: translateY(6px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.6), 0 2px 0px #9c4221; 
         }
 
-        /* 步驟 2: 輸入名稱大廳 */
+        /* 步驟 2: 大廳表單 RWD (彈性寬度與最大高寬限制) */
         #lobby { 
             position: absolute; 
-            top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); 
-            background-color: rgba(26, 32, 44, 0.85); 
-            padding: 40px; 
+            background-color: rgba(26, 32, 44, 0.9); 
+            padding: clamp(20px, 5dvw, 40px); 
             border-radius: 25px; 
             backdrop-filter: blur(15px); 
             -webkit-backdrop-filter: blur(15px); 
@@ -110,35 +121,38 @@
             text-align: center; 
             z-index: 10; 
             width: 90%; 
-            max-width: 380px; 
+            max-width: 420px; 
+            max-height: 90dvh;
+            overflow-y: auto;
             display: none; 
         }
         #lobby h2 { 
             margin-top: 0; 
+            margin-bottom: 20px;
             color: #f6ad55; 
-            font-size: 32px; 
-            text-shadow: 0 4px 0px #744210, 0 0 10px rgba(246, 173, 85, 0.5); 
+            font-size: clamp(22px, 5dvw, 32px); 
+            text-shadow: 0 3px 0px #744210, 0 0 10px rgba(246, 173, 85, 0.5); 
             letter-spacing: 2px; 
         }
         .input-group { 
-            margin-bottom: 25px; 
+            margin-bottom: 20px; 
             text-align: left; 
         }
         .input-group label { 
             display: block; 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             color: #cbd5e0; 
-            font-size: 16px; 
+            font-size: clamp(13px, 2.5dvw, 16px); 
             letter-spacing: 1px;
         }
         .input-group input { 
             width: 100%; 
-            padding: 16px; 
+            padding: clamp(10px, 2.5dvw, 16px); 
             border-radius: 12px; 
             border: 2px solid #4a5568; 
-            background-color: rgba(0,0,0,0.3); 
+            background-color: rgba(0,0,0,0.4); 
             color: white; 
-            font-size: 20px; 
+            font-size: clamp(16px, 3dvw, 20px); 
             outline: none; 
             transition: all 0.3s; 
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); 
@@ -149,12 +163,12 @@
         }
         #join-btn { 
             width: 100%; 
-            padding: 18px; 
+            padding: clamp(12px, 3dvw, 18px); 
             border-radius: 12px; 
             border: none; 
             background: linear-gradient(180deg, #48bb78 0%, #2f855a 100%); 
             color: white; 
-            font-size: 22px; 
+            font-size: clamp(16px, 3.5dvw, 22px); 
             font-weight: bold; 
             cursor: pointer; 
             box-shadow: 0 6px 0px #22543d, 0 4px 15px rgba(0,0,0,0.5); 
@@ -169,18 +183,18 @@
             box-shadow: 0 2px 0px #22543d, 0 2px 10px rgba(0,0,0,0.5); 
         }
 
-        /* 📱 智慧防呆：偵測手機是否為直向，若是則顯示旋轉提示蓋板 */
+        /* 🔄 防呆直向提示防罩 */
         @media screen and (max-width: 768px) and (orientation: portrait) {
             body::before {
                 content: "🔄 請將手機轉為橫向以獲得最佳遊戲體驗";
                 position: fixed;
-                top: 0; left: 0; width: 100vw; height: 100vh;
+                top: 0; left: 0; width: 100dvw; height: 100dvh;
                 background-color: rgba(16, 20, 29, 0.98);
                 color: #f6ad55;
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                font-size: 22px;
+                font-size: clamp(18px, 5vw, 24px);
                 font-weight: bold;
                 z-index: 9999;
                 text-align: center;
@@ -188,13 +202,13 @@
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
             }
+            #game-wrapper { display: none; } /* 直向時強制隱藏主遊戲結構 */
         }
     </style>
 </head>
 <body>
 
     <audio id="bgm-player" src="bgm.mp3" loop preload="auto"></audio>
-
     <div id="lobby-bg"></div>
     
     <div id="game-wrapper">
@@ -219,7 +233,7 @@
     </div>
 
 <script>
-    // --- 1. 網頁大廳背景浮動特效 ---
+    // --- 1. 背景浮動特效 ---
     const lobbyBg = document.getElementById('lobby-bg');
     const svgIcons = [
         `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#e53e3e"/><path d="M 50 20 L 50 10" stroke="#276749" stroke-width="6"/></svg>`, 
@@ -236,121 +250,110 @@
         lobbyBg.appendChild(div);
     }
 
-    // --- 2. 安全全螢幕觸發器 (綁定點擊事件以繞過瀏覽器限制) ---
+    // --- 2. 智慧全螢幕模組 ---
     function requestFullScreen() {
         const docElm = document.documentElement;
         if (docElm.requestFullscreen) {
-            docElm.requestFullscreen().catch(err => console.log("全螢幕請求被阻擋或暫不支援:", err));
-        } else if (docElm.webkitRequestFullscreen) { /* Safari / iOS */
+            docElm.requestFullscreen().catch(err => console.log("全螢幕請求被阻擋:", err));
+        } else if (docElm.webkitRequestFullscreen) { 
             docElm.webkitRequestFullscreen();
-        } else if (docElm.msRequestFullscreen) { /* IE11 */
+        } else if (docElm.msRequestFullscreen) { 
             docElm.msRequestFullscreen();
         }
     }
 
-    // 監聽轉向事件：翻轉時重整畫布尺寸
-    window.addEventListener("orientationchange", function() {
-        if (window.orientation === 90 || window.orientation === -90) {
-            setTimeout(() => {
-                window.scrollTo(0, 1);
-                if (typeof game !== 'undefined' && game) {
-                    game.scale.refresh();
-                }
-            }, 300);
-        }
+    // 監聽轉向與視窗縮放：即時校正 Phaser 比例
+    window.addEventListener("resize", resizeGame);
+    window.addEventListener("orientationchange", () => {
+        setTimeout(resizeGame, 300);
     });
 
-    // --- 3. 全域連線與遊戲變數 ---
+    function resizeGame() {
+        window.scrollTo(0, 1);
+        if (game) {
+            game.scale.refresh();
+        }
+    }
+
+    // --- 3. 全域核心變數 ---
     let gameRoomId = "";
     let playerNickname = "";
     let roomTopic = "";
     const uniqueClientId = 'Chef_' + Math.floor(Math.random() * 10000);
     let mqttClient = null;
-    let game = null; // Phaser 實例
+    let game = null; 
 
-    // 食譜數據
     const RECIPE_BOOK = [
         { name: "田園沙拉", req: { cabbage: 1, tomato: 1 } }, 
         { name: "番茄蘿蔔湯", req: { tomato: 2, carrot: 1 } },
         { name: "清炒時蔬", req: { cabbage: 2, carrot: 1 } }, 
-        { name: "鮮蔬大雜燴", req: { cabbage: 1, tomato: 1, carrot: 1 } },
-        { name: "雙倍茄汁", req: { tomato: 2 } }, 
-        { name: "胡蘿蔔汁", req: { carrot: 2 } }
+        { name: "鮮蔬大雜燴", req: { cabbage: 1, tomato: 1, carrot: 1 } }
     ];
     const NAME_MAP = { tomato: '番茄', carrot: '胡蘿蔔', cabbage: '高麗菜' };
 
-    // --- 4. 介面控制流程：點擊開始 ---
+    // --- 4. 流程引導控制 ---
     document.getElementById('first-start-btn').addEventListener('click', () => {
-        // 順應玩家點擊，進入全螢幕並撥放音效
         requestFullScreen();
-
         const bgm = document.getElementById('bgm-player');
         bgm.volume = 0.4;
-        bgm.play().catch(e => console.warn("找不到 bgm.mp3 或受到瀏覽器策略限制:", e));
+        bgm.play().catch(e => console.warn("BGM 播方受限:", e));
 
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('lobby').style.display = 'block';
     });
 
-    // --- 5. 正式 Phaser 遊戲場景 ---
+    // --- 5. Phaser 遊戲核心場景 ---
     class GameScene extends Phaser.Scene {
-        constructor() { 
-            super('GameScene'); 
-        }
-
-        preload() {
-            // 保持空白，避免在加載期生成貼圖導致黑屏
-        }
+        constructor() { super('GameScene'); }
+        preload() {}
 
         create() {
-            // 【修復】渲染器就緒後，動態生成所有精緻圖元
             this.generateGameTextures();
 
-            // 初始數據狀態
             this.score = 0; 
             this.currentRecipe = null; 
             this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
             this.activeChefs = {}; 
             this.myPool = []; 
 
-            // 桌板背景與輸送帶視覺提示
+            // 底層桌板與傳送帶
             this.add.image(400, 240, 'table_bg');
             this.add.rectangle(50, 240, 100, 480, 0x000000, 0.2); 
             this.add.rectangle(750, 240, 100, 480, 0x000000, 0.2);
             this.add.text(25, 240, '◄\n傳\n送', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5).setAlpha(0.6);
             this.add.text(775, 240, '►\n傳\n送', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5).setAlpha(0.6);
 
-            // 分數板
+            // 分數看板
             this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 15, 200, 50, 10);
             this.scoreText = this.add.text(35, 40, '⭐ 分數: 0', { fontSize: '28px', fill: '#ecc94b', fontStyle: 'bold' }).setOrigin(0, 0.5);
             
-            // 狀態與房間列
-            this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 420, 300, 50, 10);
-            this.statusText = this.add.text(30, 445, '連線網路中...', { fontSize: '16px', fill: '#a0aec0', fontFamily: 'Microsoft JhengHei' }).setOrigin(0, 0.5);
+            // 網路連線狀態列
+            this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 420, 310, 50, 10);
+            this.statusText = this.add.text(30, 445, '連線網路中...', { fontSize: '15px', fill: '#a0aec0', fontFamily: 'Microsoft JhengHei' }).setOrigin(0, 0.5);
 
             // 垃圾桶
             this.trashBin = this.add.image(730, 80, 'trash_bin').setDepth(2);
-            this.add.text(730, 130, '垃圾桶', { fontSize: '14px', fill: '#a0aec0', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setDepth(2);
+            this.add.text(730, 135, '垃圾桶', { fontSize: '14px', fill: '#a0aec0', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setDepth(2);
 
-            // 食譜看板
+            // 點菜看板
             this.recipeContainer = this.add.container(400, 85).setDepth(10);
             const rbg = this.add.image(0, 0, 'chalkboard');
             this.recipeTitleText = this.add.text(0, -25, '連線大廳中...', { fontSize: '24px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(0.5);
             this.recipeItemsText = this.add.text(0, 15, '', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
             this.recipeContainer.add([rbg, this.recipeTitleText, this.recipeItemsText]);
 
-            // 出餐盤子
+            // 出餐中央托盤
             this.plateContainer = this.add.container(400, 290).setDepth(5);
             this.plateContainer.setSize(130, 130); 
             this.plateContainer.setInteractive({ useHandCursor: true });
             this.input.setDraggable(this.plateContainer); 
 
             this.plateBg = this.add.image(0, 0, 'plate_3d'); 
-            this.plateText = this.add.text(0, 45, '往上推：出餐 | 往下推：清盤', { fontSize: '12px', fill: '#718096', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setAlpha(0.8);
+            this.plateText = this.add.text(0, 48, '上推：出餐 | 下推：清盤', { fontSize: '12px', fill: '#718096', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setAlpha(0.8);
             this.plateContainer.add([this.plateBg, this.plateText]);
             this.plateVisualItems = [];
 
-            // 食材取得按鈕
+            // 按鈕容器
             this.spawnBtnContainer = this.add.container(650, 430);
             const bShadow = this.add.rectangle(4, 4, 250, 60, 0x000000, 0.4).setOrigin(0.5);
             this.btnBgNormal = this.add.image(0, 0, 'btn_blue_up').setInteractive({ useHandCursor: true });
@@ -358,7 +361,7 @@
             this.btnText = this.add.text(0, -2, '取得食材', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
             this.spawnBtnContainer.add([bShadow, this.btnBgNormal, this.btnBgPressed, this.btnText]);
             
-            // 按鈕交互觸發
+            // 食材按鈕觸發事件
             this.btnBgNormal.on('pointerdown', () => {
                 if (this.myPool.length === 0) return;
                 this.btnBgNormal.setVisible(false); 
@@ -367,18 +370,17 @@
                 
                 let foodToSpawn = this.myPool[Math.floor(Math.random() * this.myPool.length)];
                 const rx = 150 + (Math.random() * 500); 
-                const ry = 160 + (Math.random() * 50);
+                const ry = 170 + (Math.random() * 50);
                 this.spawnFood(foodToSpawn, rx, ry);
             });
             this.btnBgNormal.on('pointerup', () => { this.resetBtnState(); });
             this.btnBgNormal.on('pointerout', () => { this.resetBtnState(); });
 
-            // --- 拖曳控制器事件流程 ---
+            // 托曳事件核心邏輯
             this.input.on('dragstart', (pointer, obj) => {
                 if (obj !== this.plateContainer) { 
                     this.children.bringToTop(obj); 
                     obj.setScale(1.2); 
-                    obj.setAlpha(0.9); 
                 }
             });
 
@@ -405,46 +407,35 @@
                 }
 
                 obj.setScale(1); 
-                obj.setAlpha(1);
                 
                 const distToTrash = Phaser.Math.Distance.Between(obj.x, obj.y, this.trashBin.x, this.trashBin.y);
                 const distToPlate = Phaser.Math.Distance.Between(obj.x, obj.y, this.plateContainer.x, this.plateContainer.y);
                 
                 if (distToTrash < 60) {
-                    this.tweens.add({ 
-                        targets: obj, scale: 0, angle: 180, duration: 250, 
-                        onComplete: () => { obj.destroy(); } 
-                    });
+                    this.tweens.add({ targets: obj, scale: 0, angle: 180, duration: 250, onComplete: () => { obj.destroy(); } });
                     this.tweens.add({ targets: this.trashBin, scale: 1.2, yoyo: true, duration: 80 });
                 }
                 else if (distToPlate < 80) { 
                     this.handleCombineToPlate(obj); 
                 } 
-                else if (obj.x > 700) { 
+                else if (obj.x > 710) { 
                     this.sendFood(obj.texture.key, 'right'); 
                     obj.destroy(); 
                 } 
-                else if (obj.x < 100) { 
+                else if (obj.x < 90) { 
                     this.sendFood(obj.texture.key, 'left'); 
                     obj.destroy(); 
                 } 
                 else {
                     let targetX = Phaser.Math.Clamp(obj.x, 120, 680); 
                     let targetY = Phaser.Math.Clamp(obj.y, 40, 440);
-                    if (distToPlate >= 80 && distToPlate < 140) {
-                        const angle = Phaser.Math.Angle.Between(this.plateContainer.x, this.plateContainer.y, targetX, targetY);
-                        targetX = this.plateContainer.x + Math.cos(angle) * 150; 
-                        targetY = this.plateContainer.y + Math.sin(angle) * 150;
-                    }
                     this.tweens.add({ targets: obj, x: targetX, y: targetY, duration: 200, ease: 'Back.easeOut' });
                 }
             });
 
-            // 啟動連線機制
             this.connectMQTT(); 
             this.generateNewRecipe();
             
-            // 心跳機制
             this.time.addEvent({ delay: 1500, loop: true, callback: this.sendPresence, callbackScope: this });
             this.time.addEvent({ delay: 1000, loop: true, callback: this.checkPresenceTimeout, callbackScope: this });
         }
@@ -466,7 +457,6 @@
                 y: this.plateContainer.y + (Math.random() * 40 - 20),
                 scale: 0.45, 
                 duration: 200, 
-                ease: 'Quad.easeOut',
                 onComplete: () => {
                     const localX = foodObj.x - this.plateContainer.x; 
                     const localY = foodObj.y - this.plateContainer.y;
@@ -488,7 +478,6 @@
             if (isComplete) {
                 this.score += 100; 
                 this.scoreText.setText(`⭐ 分數: ${this.score}`);
-                this.tweens.add({ targets: this.scoreText, scale: 1.3, duration: 100, yoyo: true });
                 const successText = this.add.text(400, 200, '出餐成功！ +100', { fontSize: '40px', fill: '#48bb78', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
                 
                 this.tweens.add({
@@ -505,10 +494,10 @@
                 });
             } else {
                 this.tweens.add({
-                    targets: this.plateContainer, x: this.plateContainer.x + 15, yoyo: true, repeat: 5, duration: 40,
-                    onComplete: () => { this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 200, ease: 'Back.easeOut' }); }
+                    targets: this.plateContainer, x: this.plateContainer.x + 15, yoyo: true, repeat: 3, duration: 50,
+                    onComplete: () => { this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 200 }); }
                 });
-                const failText = this.add.text(400, 200, '配方不正確！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+                const failText = this.add.text(400, 200, '配方不正確！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
                 this.tweens.add({ targets: failText, alpha: 0, y: 170, duration: 1000, onComplete: () => failText.destroy() });
             }
         }
@@ -518,9 +507,6 @@
                 this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' }); 
                 return;
             }
-            const dumpText = this.add.text(400, 200, '清空廚具！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
-            this.tweens.add({ targets: dumpText, alpha: 0, y: 170, duration: 1000, onComplete: () => dumpText.destroy() });
-
             this.plateVisualItems.forEach(item => item.destroy()); 
             this.plateVisualItems = [];
             this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
@@ -561,7 +547,6 @@
                 this.statusText.setText(`👤 單人練習 | 房號: ${gameRoomId}`); 
             } else { 
                 this.btnText.setText(`取得: ${foodNames}`); 
-                this.btnText.setFontSize(this.myPool.length > 1 ? '16px' : '18px'); 
                 this.statusText.setText(`👥 連線人數: ${chefCount} | 負責: ${foodNames}`); 
             }
         }
@@ -570,7 +555,6 @@
             const randomIdx = Math.floor(Math.random() * RECIPE_BOOK.length);
             this.currentRecipe = JSON.parse(JSON.stringify(RECIPE_BOOK[randomIdx]));
             this.updateRecipeUI();
-            this.tweens.add({ targets: this.recipeContainer, y: { from: -100, to: 85 }, duration: 500, ease: 'Bounce.easeOut' });
         }
 
         updateRecipeUI() {
@@ -587,31 +571,15 @@
 
         connectMQTT() {
             try {
-                if (typeof mqtt === 'undefined') throw new Error("MQTT 未載入");
-                
-                mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { 
-                    clientId: uniqueClientId + '_' + Date.now(), connectTimeout: 4000
-                });
-
-                mqttClient.on('connect', () => { 
-                    this.updateChefRoles(); 
-                    mqttClient.subscribe(roomTopic); 
-                });
-
-                mqttClient.on('error', () => {
-                    this.statusText.setText("⚠️ 伺服器異常，進入單人模式");
-                });
-
+                mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { clientId: uniqueClientId + '_' + Date.now(), connectTimeout: 4000 });
+                mqttClient.on('connect', () => { this.updateChefRoles(); mqttClient.subscribe(roomTopic); });
+                mqttClient.on('error', () => { this.statusText.setText("⚠️ 伺服器異常，進入單人模式"); });
                 mqttClient.on('message', (topic, message) => {
                     try {
                         const data = JSON.parse(message.toString());
                         if (data.clientId !== uniqueClientId) {
-                            if (data.type === 'food') {
-                                this.receiveFood(data.foodItem, data.senderName, data.direction);
-                            } else if (data.type === 'presence') { 
-                                this.activeChefs[data.clientId] = { name: data.name, lastSeen: Date.now() }; 
-                                this.updateChefRoles(); 
-                            }
+                            if (data.type === 'food') { this.receiveFood(data.foodItem, data.senderName, data.direction); } 
+                            else if (data.type === 'presence') { this.activeChefs[data.clientId] = { name: data.name, lastSeen: Date.now() }; this.updateChefRoles(); }
                         }
                     } catch(e) {}
                 });
@@ -636,96 +604,61 @@
 
         receiveFood(foodKey, senderName, direction) {
             let startX = (direction === 'right') ? -80 : 880; 
-            let targetY = 160 + (Math.random() * 80);
+            let targetY = 180 + (Math.random() * 80);
             const food = this.add.image(startX, targetY, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food); 
-            food.setAngle(direction === 'right' ? -180 : 180);
             let targetX = (direction === 'right') ? 180 + (Math.random()*60) : 620 - (Math.random()*60);
-            this.tweens.add({ targets: food, x: targetX, angle: 0, duration: 700, ease: 'Quart.easeOut' });
+            this.tweens.add({ targets: food, x: targetX, duration: 600, ease: 'Quart.easeOut' });
         }
 
-        // ==========================================
-        // 🛠️ 貼圖安全生成電路 (解決所有無窮迴圈與渲染時機黑屏問題)
-        // ==========================================
+        // 動態渲染向量精元
         generateGameTextures() {
             let g = this.make.graphics({ x: 0, y: 0, add: false });
-
-            // 木紋桌板背景
             g.fillStyle(0x654321, 1); g.fillRect(0, 0, 800, 480);
             g.lineStyle(3, 0x4e341b, 0.6); 
-            for(let i=0; i<18; i++) { 
-                let y = i * 30; g.moveTo(0, y); g.lineTo(800, y + (Math.random()*15 - 7)); 
-            } 
-            g.strokePath(); 
-            g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4); g.fillRect(0, 0, 800, 480); 
-            g.generateTexture('table_bg', 800, 480); g.clear();
+            for(let i=0; i<18; i++) { let y = i * 30; g.moveTo(0, y); g.lineTo(800, y + (Math.random()*10 - 5)); } 
+            g.strokePath(); g.generateTexture('table_bg', 800, 480); g.clear();
 
-            // 垃圾桶
             g.fillStyle(0x4a5568, 1); g.fillRoundedRect(20, 20, 60, 70, 5); 
             g.fillStyle(0x2d3748, 1); g.fillRect(25, 30, 50, 50); 
             g.fillStyle(0x718096, 1); g.fillRoundedRect(15, 15, 70, 10, 3); 
-            g.lineStyle(2, 0x1a202c, 0.5); g.moveTo(35, 40); g.lineTo(35, 70); g.moveTo(50, 40); g.lineTo(50, 70); g.moveTo(65, 40); g.lineTo(65, 70); g.strokePath();
             g.generateTexture('trash_bin', 100, 100); g.clear();
 
-            // 擬真盤子
             g.fillStyle(0x000000, 0.2); g.fillCircle(65, 68, 58); 
             g.fillStyle(0xfffffd, 1); g.fillCircle(60, 60, 58);
             g.lineStyle(6, 0xdcdcdc); g.strokeCircle(60, 60, 42); 
-            g.lineStyle(2, 0xbfbfbf); g.strokeCircle(60, 60, 45);
-            g.fillStyle(0xffffff, 0.8); g.fillEllipse(40, 40, 20, 10); 
             g.generateTexture('plate_3d', 130, 130); g.clear();
 
-            // 復古黑板
             g.fillStyle(0x8B4513, 1); g.fillRoundedRect(0, 0, 380, 110, 8); 
-            g.lineStyle(4, 0x5a300a); g.strokeRoundedRect(2, 2, 376, 106, 8);
             g.fillStyle(0x1a202c, 1); g.fillRoundedRect(10, 10, 360, 90, 5); 
-            g.fillStyle(0xffffff, 0.05); for(let i=0; i<50; i++) { g.fillCircle(10 + Math.random()*360, 10+Math.random()*90, 1); }
             g.generateTexture('chalkboard', 380, 110); g.clear();
 
-            // 控制按鈕
             g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); 
             g.fillStyle(0x3182ce, 1); g.fillRoundedRect(0, 0, 250, 55, 10); 
-            g.fillStyle(0x63b3ed, 0.5); g.fillRoundedRect(5, 5, 240, 15, 5); 
             g.generateTexture('btn_blue_up', 250, 60); g.clear();
             g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); 
             g.fillStyle(0x2c5282, 1); g.fillRoundedRect(0, 5, 250, 55, 10); 
             g.generateTexture('btn_blue_down', 250, 60); g.clear();
 
             // 🍅 番茄
-            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 59, 32); 
             g.fillStyle(0xc53030, 1); g.fillCircle(50, 55, 30); 
-            g.fillStyle(0xe53e3e, 1); g.fillCircle(48, 53, 26); 
-            g.fillStyle(0xfc8181, 0.7); g.fillEllipse(38, 38, 14, 8); 
-            g.fillStyle(0xffffff, 0.5); g.fillCircle(35, 35, 4);
-            g.fillStyle(0x276749, 1); g.beginPath(); 
-            g.moveTo(50, 10); g.lineTo(55, 25); g.lineTo(70, 20); g.lineTo(58, 30); g.lineTo(65, 45); g.lineTo(50, 35); g.lineTo(35, 45); g.lineTo(42, 30); g.lineTo(30, 20); g.lineTo(45, 25); 
-            g.closePath(); g.fillPath(); g.fillStyle(0x48bb78, 1); g.fillCircle(50, 25, 4); 
+            g.fillStyle(0x276749, 1); g.fillRect(47, 15, 6, 12);
             g.generateTexture('tomato', 100, 100); g.clear();
 
             // 🥕 胡蘿蔔
-            g.fillStyle(0x000000, 0.2); g.fillTriangle(44, 24, 74, 34, 54, 94);
-            g.fillStyle(0xc05621, 1); g.beginPath(); g.moveTo(40, 20); g.lineTo(70, 30); g.lineTo(50, 90); g.closePath(); g.fillPath(); 
-            g.fillStyle(0xdd6b20, 1); g.beginPath(); g.moveTo(42, 22); g.lineTo(66, 29); g.lineTo(50, 86); g.closePath(); g.fillPath(); 
-            g.lineStyle(2, 0x9c4221, 0.5); g.moveTo(48, 40); g.lineTo(58, 43); g.moveTo(45, 55); g.lineTo(53, 58); g.moveTo(51, 70); g.lineTo(56, 72); g.strokePath();
-            g.fillStyle(0x276749, 1); g.fillRect(48, 5, 5, 18); g.fillRect(56, 8, 4, 15);
-            g.fillStyle(0x38a169, 1); g.fillCircle(45, 8, 6); g.fillCircle(55, 5, 7); g.fillCircle(62, 12, 5);
+            g.fillStyle(0xdd6b20, 1); g.beginPath(); g.moveTo(35, 25); g.lineTo(65, 25); g.lineTo(50, 85); g.closePath(); g.fillPath(); 
+            g.fillStyle(0x38a169, 1); g.fillCircle(50, 15, 8);
             g.generateTexture('carrot', 100, 100); g.clear();
 
             // 🥬 高麗菜
-            g.fillStyle(0x000000, 0.15); g.fillCircle(53, 53, 38);
-            g.fillStyle(0x22543d, 1); g.fillCircle(50, 50, 36); 
-            g.fillStyle(0x2f855a, 1); g.fillEllipse(50, 50, 34, 30); 
-            g.fillStyle(0x38a169, 1); g.fillEllipse(55, 45, 28, 25);
-            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 20);
-            g.fillStyle(0x9ae6b4, 1); g.fillEllipse(48, 52, 12, 15); 
-            g.lineStyle(2, 0xc6f6d5, 0.3); g.beginPath(); g.moveTo(50, 86); g.lineTo(50, 50); g.moveTo(50, 70); g.lineTo(35, 60); g.moveTo(50, 70); g.lineTo(65, 60); g.moveTo(50, 55); g.lineTo(30, 45); g.moveTo(50, 55); g.lineTo(70, 45); g.strokePath();
+            g.fillStyle(0x2f855a, 1); g.fillCircle(50, 50, 34); 
+            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 22);
             g.generateTexture('cabbage', 100, 100); g.destroy();
         }
     }
 
-    // --- 6. 介面控制流程：大廳進入 Phaser ---
+    // --- 6. 啟動 Phaser 彈性配置 ---
     document.getElementById('join-btn').addEventListener('click', () => {
-        // 雙重保險觸發全螢幕
         requestFullScreen();
 
         const roomInput = document.getElementById('room-input').value.trim(); 
@@ -741,9 +674,9 @@
         document.getElementById('lobby-bg').style.opacity = '0'; 
         setTimeout(() => { document.getElementById('lobby-bg').style.display = 'none'; }, 500);
         
-        document.getElementById('game-container').style.display = 'block';
+        document.getElementById('game-container').style.display = 'flex';
         
-        // 開動畫布與框架
+        // 核心 RWD 引擎：使用 FIT 模式並自動置中，完美融合外層 flex 容器
         game = new Phaser.Game({ 
             type: Phaser.AUTO, 
             parent: 'game-container', 
@@ -756,6 +689,9 @@
             }, 
             scene: GameScene 
         });
+        
+        // 立即觸發校正
+        setTimeout(resizeGame, 200);
     });
 </script>
 </body>
