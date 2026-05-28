@@ -3,40 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 質感蔬菜版</title>
+    <title>Family Style - 穩定修復版</title>
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
-        * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; font-family: 'Russo One', 'Microsoft JhengHei', sans-serif; }
-        body { margin: 0; padding: 0; background-color: #10141d; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; color: white; touch-action: none; position: relative; }
-        #lobby-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #2d3748 0%, #10141d 100%); z-index: 0; overflow: hidden; transition: opacity 0.5s; }
-        .floating-svg { position: absolute; opacity: 0.15; animation: float 15s infinite linear; }
-        @keyframes float { 0% { transform: translateY(110vh) rotate(0deg) scale(0.8); } 50% { transform: scale(1.1); opacity: 0.25; } 100% { transform: translateY(-20vh) rotate(360deg) scale(0.8); } }
-        #game-wrapper { position: relative; width: 100%; max-width: 800px; z-index: 1; padding: 10px; }
-        #game-container { width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.7), 0 0 20px rgba(246, 173, 85, 0.2); border: 4px solid #4a5568; display: none; }
-        #start-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center; width: 100%; }
-        .huge-btn { padding: 20px 60px; font-size: 36px; border-radius: 50px; background: linear-gradient(180deg, #f6ad55 0%, #dd6b20 100%); color: white; border: 4px solid #fff; cursor: pointer; box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 8px 0px #9c4221; font-weight: bold; transition: all 0.1s; text-shadow: 0 2px 4px rgba(0,0,0,0.4); letter-spacing: 2px; }
-        .huge-btn:active { transform: translateY(8px); box-shadow: 0 5px 15px rgba(0,0,0,0.6), 0 0px 0px #9c4221; }
-        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(26, 32, 44, 0.85); padding: 40px; border-radius: 25px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); text-align: center; z-index: 10; width: 90%; max-width: 380px; display: none; }
-        #lobby h2 { margin-top: 0; color: #f6ad55; font-size: 32px; text-shadow: 0 4px 0px #744210, 0 0 10px rgba(246, 173, 85, 0.5); letter-spacing: 2px; }
-        .input-group { margin-bottom: 25px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 10px; color: #cbd5e0; font-size: 16px; letter-spacing: 1px;}
-        .input-group input { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid #4a5568; background-color: rgba(0,0,0,0.3); color: white; font-size: 20px; outline: none; transition: all 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
-        .input-group input:focus { border-color: #f6ad55; box-shadow: 0 0 10px rgba(246, 173, 85, 0.4), inset 0 2px 4px rgba(0,0,0,0.5); }
-        #join-btn { width: 100%; padding: 18px; border-radius: 12px; border: none; background: linear-gradient(180deg, #48bb78 0%, #2f855a 100%); color: white; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 0px #22543d, 0 4px 15px rgba(0,0,0,0.5); transition: all 0.1s; text-shadow: 0 2px 2px rgba(0,0,0,0.3); }
-        #join-btn:hover { background: linear-gradient(180deg, #68d391 0%, #38a169 100%); }
-        #join-btn:active { transform: translateY(4px); box-shadow: 0 2px 0px #22543d, 0 2px 10px rgba(0,0,0,0.5); }
+        * { 
+            box-sizing: border-box; 
+            -webkit-touch-callout: none; 
+            -webkit-user-select: none; 
+            user-select: none; 
+            font-family: 'Russo One', 'Microsoft JhengHei', sans-serif; 
+        }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #10141d; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            overflow: hidden; 
+            color: white; 
+            touch-action: none; 
+            position: relative; 
+        }
+        
+        /* 網頁大廳背景動畫 */
+        #lobby-bg { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: radial-gradient(circle at center, #2d3748 0%, #10141d 100%); 
+            z-index: 0; 
+            overflow: hidden; 
+            transition: opacity 0.5s; 
+        }
+        .floating-svg { 
+            position: absolute; 
+            opacity: 0.15; 
+            animation: float 15s infinite linear; 
+        }
+        @keyframes float { 
+            0% { transform: translateY(110vh) rotate(0deg) scale(0.8); } 
+            50% { transform: scale(1.1); opacity: 0.25; } 
+            100% { transform: translateY(-20vh) rotate(360deg) scale(0.8); } 
+        }
+        
+        #game-wrapper { 
+            position: relative; 
+            width: 100%; 
+            max-width: 800px; 
+            z-index: 1; 
+            padding: 10px; 
+        }
+        #game-container { 
+            width: 100%; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.7), 0 0 20px rgba(246, 173, 85, 0.2); 
+            border: 4px solid #4a5568; 
+            display: none; 
+        }
+        
+        /* 步驟 1: 初始 START 畫面 */
+        #start-screen { 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 20; 
+            text-align: center; 
+            width: 100%; 
+        }
+        .huge-btn { 
+            padding: 20px 60px; 
+            font-size: 36px; 
+            border-radius: 50px; 
+            background: linear-gradient(180deg, #f6ad55 0%, #dd6b20 100%); 
+            color: white; 
+            border: 4px solid #fff; 
+            cursor: pointer; 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 8px 0px #9c4221; 
+            font-weight: bold; 
+            transition: all 0.1s; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+            letter-spacing: 2px; 
+        }
+        .huge-btn:active { 
+            transform: translateY(8px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.6), 0 0px 0px #9c4221; 
+        }
+
+        /* 步驟 2: 輸入名稱大廳 */
+        #lobby { 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            background-color: rgba(26, 32, 44, 0.85); 
+            padding: 40px; 
+            border-radius: 25px; 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
+            border: 2px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); 
+            text-align: center; 
+            z-index: 10; 
+            width: 90%; 
+            max-width: 380px; 
+            display: none; 
+        }
+        #lobby h2 { 
+            margin-top: 0; 
+            color: #f6ad55; 
+            font-size: 32px; 
+            text-shadow: 0 4px 0px #744210, 0 0 10px rgba(246, 173, 85, 0.5); 
+            letter-spacing: 2px; 
+        }
+        .input-group { 
+            margin-bottom: 25px; 
+            text-align: left; 
+        }
+        .input-group label { 
+            display: block; 
+            margin-bottom: 10px; 
+            color: #cbd5e0; 
+            font-size: 16px; 
+            letter-spacing: 1px;
+        }
+        .input-group input { 
+            width: 100%; 
+            padding: 16px; 
+            border-radius: 12px; 
+            border: 2px solid #4a5568; 
+            background-color: rgba(0,0,0,0.3); 
+            color: white; 
+            font-size: 20px; 
+            outline: none; 
+            transition: all 0.3s; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); 
+        }
+        .input-group input:focus { 
+            border-color: #f6ad55; 
+            box-shadow: 0 0 10px rgba(246, 173, 85, 0.4), inset 0 2px 4px rgba(0,0,0,0.5); 
+        }
+        #join-btn { 
+            width: 100%; 
+            padding: 18px; 
+            border-radius: 12px; 
+            border: none; 
+            background: linear-gradient(180deg, #48bb78 0%, #2f855a 100%); 
+            color: white; 
+            font-size: 22px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 6px 0px #22543d, 0 4px 15px rgba(0,0,0,0.5); 
+            transition: all 0.1s; 
+            text-shadow: 0 2px 2px rgba(0,0,0,0.3); 
+        }
+        #join-btn:hover { 
+            background: linear-gradient(180deg, #68d391 0%, #38a169 100%); 
+        }
+        #join-btn:active { 
+            transform: translateY(4px); 
+            box-shadow: 0 2px 0px #22543d, 0 2px 10px rgba(0,0,0,0.5); 
+        }
     </style>
 </head>
 <body>
 
     <audio id="bgm-player" src="bgm.mp3" loop preload="auto"></audio>
+
     <div id="lobby-bg"></div>
+    
     <div id="game-wrapper">
         <div id="start-screen">
             <button class="huge-btn" id="first-start-btn">▶ 開始遊戲</button>
         </div>
+
         <div id="lobby">
             <h2>聯機大廚房</h2>
             <div class="input-group">
@@ -49,144 +193,108 @@
             </div>
             <button id="join-btn">進入廚房 START</button>
         </div>
+
         <div id="game-container"></div>
     </div>
 
 <script>
+    // --- 繪製網頁大廳背景浮動特效 ---
     const lobbyBg = document.getElementById('lobby-bg');
-    // 大廳背景 SVG 保持不變
     const svgIcons = [
         `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#e53e3e"/><path d="M 50 20 L 50 10" stroke="#276749" stroke-width="6"/></svg>`, 
         `<svg width="50" height="50" viewBox="0 0 100 100"><path d="M 35 40 L 65 40 L 50 90 Z" fill="#dd6b20"/><path d="M 50 40 L 50 20" stroke="#38a169" stroke-width="6"/></svg>`, 
         `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#68d391"/></svg>` 
     ];
     for(let i=0; i<18; i++) {
-        const div = document.createElement('div'); div.className = 'floating-svg';
+        const div = document.createElement('div'); 
+        div.className = 'floating-svg';
         div.innerHTML = svgIcons[Math.floor(Math.random()*svgIcons.length)];
-        div.style.left = Math.random() * 100 + '%'; div.style.animationDelay = Math.random() * 15 + 's'; div.style.animationDuration = (12 + Math.random() * 10) + 's';
+        div.style.left = Math.random() * 100 + '%'; 
+        div.style.animationDelay = Math.random() * 15 + 's'; 
+        div.style.animationDuration = (12 + Math.random() * 10) + 's';
         lobbyBg.appendChild(div);
     }
 
+    // --- 介面流程：點擊開始畫面 ---
     document.getElementById('first-start-btn').addEventListener('click', () => {
+        // 解鎖並播放音樂
         const bgm = document.getElementById('bgm-player');
-        bgm.volume = 0.4; bgm.play().catch(e => console.warn("音效解鎖失敗"));
+        bgm.volume = 0.4;
+        bgm.play().catch(e => console.warn("找不到 bgm.mp3 或瀏覽器限制播放:", e));
+
+        // 切換 UI
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('lobby').style.display = 'block';
     });
 
-    let gameRoomId = "", playerNickname = "", roomTopic = "";
+    // --- 全域連線變數 ---
+    let gameRoomId = "";
+    let playerNickname = "";
+    let roomTopic = "";
     const uniqueClientId = 'Chef_' + Math.floor(Math.random() * 10000);
     let mqttClient = null;
 
+    // 食譜字典與名稱映射
     const RECIPE_BOOK = [
-        { name: "田園沙拉", req: { cabbage: 1, tomato: 1 } }, { name: "番茄蘿蔔湯", req: { tomato: 2, carrot: 1 } },
-        { name: "清炒時蔬", req: { cabbage: 2, carrot: 1 } }, { name: "鮮蔬大雜燴", req: { cabbage: 1, tomato: 1, carrot: 1 } },
-        { name: "雙倍茄汁", req: { tomato: 2 } }, { name: "胡蘿蔔汁", req: { carrot: 2 } }
+        { name: "田園沙拉", req: { cabbage: 1, tomato: 1 } }, 
+        { name: "番茄蘿蔔湯", req: { tomato: 2, carrot: 1 } },
+        { name: "清炒時蔬", req: { cabbage: 2, carrot: 1 } }, 
+        { name: "鮮蔬大雜燴", req: { cabbage: 1, tomato: 1, carrot: 1 } },
+        { name: "雙倍茄汁", req: { tomato: 2 } }, 
+        { name: "胡蘿蔔汁", req: { carrot: 2 } }
     ];
     const NAME_MAP = { tomato: '番茄', carrot: '胡蘿蔔', cabbage: '高麗菜' };
 
+    // --- 正式 Phaser 遊戲場景 ---
     class GameScene extends Phaser.Scene {
-        constructor() { super('GameScene'); }
+        constructor() { 
+            super('GameScene'); 
+        }
 
         preload() {
-            // ==========================================
-            // 核心修改：蔬菜擬真繪圖系統
-            // ==========================================
-            let g = this.make.graphics({ x: 0, y: 0, add: false });
-
-            // 1. 桌子背景
-            g.fillStyle(0x654321, 1); g.fillRect(0, 0, 800, 480);
-            g.lineStyle(3, 0x4e341b, 0.6); for(let i=0; i<18; i++) { let y = i * 30; g.moveTo(0, y); g.lineTo(800, y + (Math.random()*15 - 7)); } g.strokePath(); 
-            g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4); g.fillRect(0, 0, 800, 480); g.generateTexture('table_bg', 800, 480); g.clear();
-
-            // 2. 垃圾桶
-            g.fillStyle(0x4a5568, 1); g.fillRoundedRect(20, 20, 60, 70, 5); g.fillStyle(0x2d3748, 1); g.fillRect(25, 30, 50, 50); 
-            g.fillStyle(0x718096, 1); g.fillRoundedRect(15, 15, 70, 10, 3); g.lineStyle(2, 0x1a202c, 0.5); g.moveTo(35, 40); g.lineTo(35, 70); g.moveTo(50, 40); g.lineTo(50, 70); g.moveTo(65, 40); g.lineTo(65, 70); g.strokePath();
-            g.generateTexture('trash_bin', 100, 100); g.clear();
-
-            // 3. 盤子
-            g.fillStyle(0x000000, 0.2); g.fillCircle(65, 68, 58); g.fillStyle(0xfffffd, 1); g.fillCircle(60, 60, 58);
-            g.lineStyle(6, 0xdcdcdc); g.strokeCircle(60, 60, 42); g.lineStyle(2, 0xbfbfbf); g.strokeCircle(60, 60, 45);
-            g.fillStyle(0xffffff, 0.8); g.fillEllipse(40, 40, 20, 10); g.generateTexture('plate_3d', 130, 130); g.clear();
-
-            // 4. 黑板看板
-            g.fillStyle(0x8B4513, 1); g.fillRoundedRect(0, 0, 380, 110, 8); g.lineStyle(4, 0x5a300a); g.strokeRoundedRect(2, 2, 376, 106, 8);
-            g.fillStyle(0x1a202c, 1); g.fillRoundedRect(10, 10, 360, 90, 5); g.fillStyle(0xffffff, 0.05); for(let i=0; i<50; i++) { g.fillCircle(10 + Math.random()*360, 10+Math.random()*90, 1); }
-            g.generateTexture('chalkboard', 380, 110); g.clear();
-
-            // 5. 按鈕
-            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); g.fillStyle(0x3182ce, 1); g.fillRoundedRect(0, 0, 250, 55, 10); g.fillStyle(0x63b3ed, 0.5); g.fillRoundedRect(5, 5, 240, 15, 5); g.generateTexture('btn_blue_up', 250, 60); g.clear();
-            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); g.fillStyle(0x2c5282, 1); g.fillRoundedRect(0, 5, 250, 55, 10); g.generateTexture('btn_blue_down', 250, 60); g.clear();
-
-            // 6. 🍅 擬真番茄 (Juicy Tomato)
-            // 底層陰影與主體
-            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 59, 32); 
-            g.fillStyle(0xc53030, 1); g.fillCircle(50, 55, 30); // 深紅底
-            g.fillStyle(0xe53e3e, 1); g.fillCircle(48, 53, 26); // 主紅
-            // 頂部光澤球
-            g.fillStyle(0xfc8181, 0.7); g.fillEllipse(38, 38, 14, 8, 0); 
-            g.fillStyle(0xffffff, 0.5); g.fillCircle(35, 35, 4);
-            // 立體蒂頭 (非對稱葉片)
-            g.fillStyle(0x276749, 1); // 深綠
-            g.beginPath(); g.moveTo(50, 10); g.lineTo(55, 25); g.lineTo(70, 20); g.lineTo(58, 30); g.lineTo(65, 45); g.lineTo(50, 35); g.lineTo(35, 45); g.lineTo(42, 30); g.lineTo(30, 20); g.lineTo(45, 25); g.closePath(); g.fillPath();
-            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 25, 4); // 蒂頭中心
-            g.generateTexture('tomato', 100, 100); g.clear();
-
-            // 7. 🥕 擬真胡蘿蔔 (Organic Carrot)
-            // 陰影與主體 (不規則圓錐)
-            g.fillStyle(0x000000, 0.2); g.fillTriangle(44, 24, 74, 34, 54, 94);
-            g.fillStyle(0xc05621, 1); g.beginPath(); g.moveTo(40, 20); g.lineTo(70, 30); g.lineTo(50, 90); g.closePath(); g.fillPath(); // 深橘
-            g.fillStyle(0xdd6b20, 1); g.beginPath(); g.moveTo(42, 22); g.lineTo(66, 29); g.lineTo(50, 86); g.closePath(); g.fillPath(); // 主橘
-            // 皮孔紋理 (點與橫線)
-            g.lineStyle(2, 0x9c4221, 0.5); g.moveTo(48, 40); g.lineTo(58, 43); g.moveTo(45, 55); g.lineTo(53, 58); g.moveTo(51, 70); g.lineTo(56, 72); g.strokePath();
-            g.fillStyle(0x9c4221, 0.6); g.fillCircle(55, 50, 1.5); g.fillCircle(47, 65, 1.5);
-            // 頂部葉梗束
-            g.fillStyle(0x276749, 1); g.fillRect(48, 5, 5, 18); g.fillRect(56, 8, 4, 15);
-            g.fillStyle(0x38a169, 1); g.fillCircle(45, 8, 6); g.fillCircle(55, 5, 7); g.fillCircle(62, 12, 5);
-            g.generateTexture('carrot', 100, 100); g.clear();
-
-            // 8. 🥬 擬真高麗菜 (Layered Cabbage)
-            // 外層不規則深綠葉片
-            g.fillStyle(0x000000, 0.15); g.fillCircle(53, 53, 38);
-            g.fillStyle(0x22543d, 1); g.fillCircle(50, 50, 36); 
-            // 堆疊葉片層次 (使用多個不規則橢圓)
-            g.fillStyle(0x2f855a, 1); g.fillEllipse(50, 50, 34, 30, 10);
-            g.fillStyle(0x38a169, 1); g.fillEllipse(55, 45, 28, 25, -15);
-            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 20);
-            g.fillStyle(0x9ae6b4, 1); g.fillEllipse(48, 52, 12, 15, 20); // 最內芯
-            // 淺色葉脈紋理
-            g.lineStyle(2, 0xc6f6d5, 0.3);
-            g.beginPath(); g.moveTo(50, 86); g.lineTo(50, 50); // 主脈
-            g.moveTo(50, 70); g.lineTo(35, 60); g.moveTo(50, 70); g.lineTo(65, 60);
-            g.moveTo(50, 55); g.lineTo(30, 45); g.moveTo(50, 55); g.lineTo(70, 45); g.strokePath();
-            g.generateTexture('cabbage', 100, 100); g.destroy();
+            // 這裡刻意保持空白，避免在加載期生成貼圖導致黑屏崩潰
         }
 
         create() {
-            // 剩餘 GameScene 邏輯保持不變
-            this.score = 0; this.currentRecipe = null; this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
-            this.activeChefs = {}; this.myPool = []; 
+            // 1. 【安全修復】在這裡生成所有精緻的畫布貼圖，確保渲染器完全就緒
+            this.generateGameTextures();
 
+            // 初始化狀態
+            this.score = 0; 
+            this.currentRecipe = null; 
+            this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+            this.activeChefs = {}; 
+            this.myPool = []; 
+
+            // 繪製背景桌板
             this.add.image(400, 240, 'table_bg');
             
-            this.add.rectangle(50, 240, 100, 480, 0x000000, 0.2); this.add.rectangle(750, 240, 100, 480, 0x000000, 0.2);
+            // 傳送緩衝區提示區塊
+            this.add.rectangle(50, 240, 100, 480, 0x000000, 0.2); 
+            this.add.rectangle(750, 240, 100, 480, 0x000000, 0.2);
             this.add.text(25, 240, '◄\n傳\n送', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5).setAlpha(0.6);
             this.add.text(775, 240, '►\n傳\n送', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5).setAlpha(0.6);
 
+            // 分數看板
             this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 15, 200, 50, 10);
             this.scoreText = this.add.text(35, 40, '⭐ 分數: 0', { fontSize: '28px', fill: '#ecc94b', fontStyle: 'bold' }).setOrigin(0, 0.5);
+            
+            // 底部房間與連線狀態文字
             this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 420, 300, 50, 10);
             this.statusText = this.add.text(30, 445, '連線初始化...', { fontSize: '16px', fill: '#a0aec0', fontFamily: 'Microsoft JhengHei' }).setOrigin(0, 0.5);
 
+            // 垃圾桶
             this.trashBin = this.add.image(730, 80, 'trash_bin').setDepth(2);
             this.add.text(730, 130, '垃圾桶', { fontSize: '14px', fill: '#a0aec0', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setDepth(2);
 
+            // 黑板食譜容器
             this.recipeContainer = this.add.container(400, 85).setDepth(10);
             const rbg = this.add.image(0, 0, 'chalkboard');
             this.recipeTitleText = this.add.text(0, -25, '準備中...', { fontSize: '24px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(0.5);
             this.recipeItemsText = this.add.text(0, 15, '', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
             this.recipeContainer.add([rbg, this.recipeTitleText, this.recipeItemsText]);
 
+            // 出餐盤子容器
             this.plateContainer = this.add.container(400, 290).setDepth(5);
             this.plateContainer.setSize(130, 130); 
             this.plateContainer.setInteractive({ useHandCursor: true });
@@ -197,104 +305,471 @@
             this.plateContainer.add([this.plateBg, this.plateText]);
             this.plateVisualItems = [];
 
+            // 取得食材實體按鈕
             this.spawnBtnContainer = this.add.container(650, 430);
             const bShadow = this.add.rectangle(4, 4, 250, 60, 0x000000, 0.4).setOrigin(0.5);
             this.btnBgNormal = this.add.image(0, 0, 'btn_blue_up').setInteractive({ useHandCursor: true });
             this.btnBgPressed = this.add.image(0, 0, 'btn_blue_down').setVisible(false);
-            this.btnText = this.add.text(0, -2, '取得：外包中', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+            this.btnText = this.add.text(0, -2, '取得：連線中...', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
             this.spawnBtnContainer.add([bShadow, this.btnBgNormal, this.btnBgPressed, this.btnText]);
             
+            // 按鈕點擊事件處理
             this.btnBgNormal.on('pointerdown', () => {
                 if (this.myPool.length === 0) return;
-                this.btnBgNormal.setVisible(false); this.btnBgPressed.setVisible(true); this.btnText.y = 2;
+                this.btnBgNormal.setVisible(false); 
+                this.btnBgPressed.setVisible(true); 
+                this.btnText.y = 2;
+                
                 let foodToSpawn = this.myPool[Math.floor(Math.random() * this.myPool.length)];
-                const rx = 150 + (Math.random() * 500); const ry = 160 + (Math.random() * 50);
+                const rx = 150 + (Math.random() * 500); 
+                const ry = 160 + (Math.random() * 50);
                 this.spawnFood(foodToSpawn, rx, ry);
             });
-            this.btnBgNormal.on('pointerup', () => this.resetBtnState());
-            this.btnBgNormal.on('pointerout', () => this.resetBtnState());
+            this.btnBgNormal.on('pointerup', () => { this.resetBtnState(); });
+            this.btnBgNormal.on('pointerout', () => { this.resetBtnState(); });
 
-            this.input.on('dragstart', (p, obj) => {
-                if (obj !== this.plateContainer) { this.children.bringToTop(obj); obj.setScale(1.2); obj.setAlpha(0.9); }
+            // --- 全域拖曳事件處理流程（展開排版確保不噴錯） ---
+            this.input.on('dragstart', (pointer, obj) => {
+                if (obj !== this.plateContainer) { 
+                    this.children.bringToTop(obj); 
+                    obj.setScale(1.2); 
+                    obj.setAlpha(0.9); 
+                }
             });
 
-            this.input.on('drag', (p, obj, dx, dy) => { 
+            this.input.on('drag', (pointer, obj, dragX, dragY) => { 
                 if (obj === this.plateContainer) {
-                    obj.y = Phaser.Math.Clamp(dy, -200, 450); 
-                    obj.x = dx;
-                } else { obj.x = dx; obj.y = dy; }
+                    obj.y = Phaser.Math.Clamp(dragY, -200, 450); 
+                    obj.x = dragX;
+                } else { 
+                    obj.x = dragX; 
+                    obj.y = dragY; 
+                }
             });
             
-            this.input.on('dragend', (p, obj) => {
+            this.input.on('dragend', (pointer, obj) => {
+                // 如果拖曳的是盤子
                 if (obj === this.plateContainer) {
-                    if (this.plateContainer.y < 170) { this.handleServeGesture(); } 
-                    else if (this.plateContainer.y > 380) { this.handleDumpPlate(); } 
-                    else { this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' }); }
+                    if (this.plateContainer.y < 170) { 
+                        this.handleServeGesture(); 
+                    } else if (this.plateContainer.y > 380) { 
+                        this.handleDumpPlate(); 
+                    } else { 
+                        this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' }); 
+                    }
                     return;
                 }
 
-                obj.setScale(1); obj.setAlpha(1);
+                // 如果拖曳的是蔬菜
+                obj.setScale(1); 
+                obj.setAlpha(1);
+                
                 const distToTrash = Phaser.Math.Distance.Between(obj.x, obj.y, this.trashBin.x, this.trashBin.y);
                 const distToPlate = Phaser.Math.Distance.Between(obj.x, obj.y, this.plateContainer.x, this.plateContainer.y);
                 
                 if (distToTrash < 60) {
-                    this.tweens.add({ targets: obj, scale: 0, angle: 180, duration: 250, onComplete: () => obj.destroy() });
+                    this.tweens.add({ 
+                        targets: obj, scale: 0, angle: 180, duration: 250, 
+                        onComplete: () => { obj.destroy(); } 
+                    });
                     this.tweens.add({ targets: this.trashBin, scale: 1.2, yoyo: true, duration: 80 });
                 }
-                else if (distToPlate < 80) { this.handleCombineToPlate(obj); } 
-                else if (obj.x > 700) { this.sendFood(obj.texture.key, 'right'); obj.destroy(); } 
-                else if (obj.x < 100) { this.sendFood(obj.texture.key, 'left'); obj.destroy(); } 
+                else if (distToPlate < 80) { 
+                    this.handleCombineToPlate(obj); 
+                } 
+                else if (obj.x > 700) { 
+                    this.sendFood(obj.texture.key, 'right'); 
+                    obj.destroy(); 
+                } 
+                else if (obj.x < 100) { 
+                    this.sendFood(obj.texture.key, 'left'); 
+                    obj.destroy(); 
+                } 
                 else {
-                    let targetX = Phaser.Math.Clamp(obj.x, 120, 680); let targetY = Phaser.Math.Clamp(obj.y, 40, 440);
+                    let targetX = Phaser.Math.Clamp(obj.x, 120, 680); 
+                    let targetY = Phaser.Math.Clamp(obj.y, 40, 440);
                     if (distToPlate >= 80 && distToPlate < 140) {
                         const angle = Phaser.Math.Angle.Between(this.plateContainer.x, this.plateContainer.y, targetX, targetY);
-                        targetX = this.plateContainer.x + Math.cos(angle) * 150; targetY = this.plateContainer.y + Math.sin(angle) * 150;
+                        targetX = this.plateContainer.x + Math.cos(angle) * 150; 
+                        targetY = this.plateContainer.y + Math.sin(angle) * 150;
                     }
                     this.tweens.add({ targets: obj, x: targetX, y: targetY, duration: 200, ease: 'Back.easeOut' });
                 }
             });
 
-            this.connectMQTT(); this.generateNewRecipe();
+            // 啟動通訊與新關卡
+            this.connectMQTT(); 
+            this.generateNewRecipe();
+            
+            // 玩家存在計時器
             this.time.addEvent({ delay: 1500, loop: true, callback: this.sendPresence, callbackScope: this });
             this.time.addEvent({ delay: 1000, loop: true, callback: this.checkPresenceTimeout, callbackScope: this });
         }
 
-        // 剩餘 GameScene 輔助方法保持不變
-        resetBtnState() { this.btnBgNormal.setVisible(true); this.btnBgPressed.setVisible(false); this.btnText.y = -2; }
+        resetBtnState() { 
+            this.btnBgNormal.setVisible(true); 
+            this.btnBgPressed.setVisible(false); 
+            this.btnText.y = -2; 
+        }
+
+        // 把食材放進盤子裡
         handleCombineToPlate(foodObj) {
             const foodKey = foodObj.texture.key;
-            if (!this.currentProgress[foodKey]) this.currentProgress[foodKey] = 0;
+            if (!this.currentProgress[foodKey]) {
+                this.currentProgress[foodKey] = 0;
+            }
             this.currentProgress[foodKey]++;
-            this.tweens.add({ targets: foodObj, x: this.plateContainer.x + (Math.random() * 40 - 20), y: this.plateContainer.y + (Math.random() * 40 - 20), scale: 0.45, duration: 200, ease: 'Quad.easeOut', onComplete: () => { const localX = foodObj.x - this.plateContainer.x; const localY = foodObj.y - this.plateContainer.y; const plateFood = this.add.image(localX, localY, foodKey).setScale(0.45); this.plateContainer.add(plateFood); this.plateVisualItems.push(plateFood); foodObj.destroy(); this.updateRecipeUI(); } });
+
+            this.tweens.add({
+                targets: foodObj, 
+                x: this.plateContainer.x + (Math.random() * 40 - 20), 
+                y: this.plateContainer.y + (Math.random() * 40 - 20),
+                scale: 0.45, 
+                duration: 200, 
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    const localX = foodObj.x - this.plateContainer.x; 
+                    const localY = foodObj.y - this.plateContainer.y;
+                    const plateFood = this.add.image(localX, localY, foodKey).setScale(0.45);
+                    this.plateContainer.add(plateFood); 
+                    this.plateVisualItems.push(plateFood);
+                    foodObj.destroy(); 
+                    this.updateRecipeUI();
+                }
+            });
         }
+
+        // 判定向上推：出餐
         handleServeGesture() {
-            let isComplete = true; for (let [key, needed] of Object.entries(this.currentRecipe.req)) { if ((this.currentProgress[key] || 0) < needed) { isComplete = false; break; } }
-            if (isComplete) { this.score += 100; this.scoreText.setText(`⭐ 分數: ${this.score}`); this.tweens.add({ targets: this.scoreText, scale: 1.3, duration: 100, yoyo: true }); const successText = this.add.text(400, 200, '完美出餐！ +100', { fontSize: '40px', fill: '#48bb78', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5); this.tweens.add({ targets: this.plateContainer, y: -150, alpha: 0, duration: 350, ease: 'Cubic.easeIn', onComplete: () => { this.plateVisualItems.forEach(item => item.destroy()); this.plateVisualItems = []; this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 }; this.plateContainer.x = 400; this.plateContainer.y = 520; this.plateContainer.alpha = 1; this.tweens.add({ targets: this.plateContainer, y: 290, duration: 400, ease: 'Back.easeOut' }); successText.destroy(); this.generateNewRecipe(); } }); } 
-            else { const currentX = this.plateContainer.x; this.tweens.add({ targets: this.plateContainer, x: currentX + 15, yoyo: true, repeat: 5, duration: 40, onComplete: () => { this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 200, ease: 'Back.easeOut' }); } }); const failText = this.add.text(400, 200, '菜單不符或食材不足！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5); this.tweens.add({ targets: failText, alpha: 0, y: 170, duration: 1000, onComplete: () => failText.destroy() }); }
+            let isComplete = true;
+            for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
+                if ((this.currentProgress[key] || 0) < needed) { 
+                    isComplete = false; 
+                    break; 
+                }
+            }
+
+            if (isComplete) {
+                this.score += 100; 
+                this.scoreText.setText(`⭐ 分數: ${this.score}`);
+                this.tweens.add({ targets: this.scoreText, scale: 1.3, duration: 100, yoyo: true });
+                const successText = this.add.text(400, 200, '完美出餐！ +100', { fontSize: '40px', fill: '#48bb78', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
+                
+                this.tweens.add({
+                    targets: this.plateContainer, y: -150, alpha: 0, duration: 350, ease: 'Cubic.easeIn',
+                    onComplete: () => {
+                        this.plateVisualItems.forEach(item => item.destroy()); 
+                        this.plateVisualItems = [];
+                        this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+                        this.plateContainer.x = 400; 
+                        this.plateContainer.y = 520; 
+                        this.plateContainer.alpha = 1;
+                        this.tweens.add({ targets: this.plateContainer, y: 290, duration: 400, ease: 'Back.easeOut' });
+                        successText.destroy(); 
+                        this.generateNewRecipe();
+                    }
+                });
+            } else {
+                const currentX = this.plateContainer.x;
+                this.tweens.add({
+                    targets: this.plateContainer, x: currentX + 15, yoyo: true, repeat: 5, duration: 40,
+                    onComplete: () => { 
+                        this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 200, ease: 'Back.easeOut' }); 
+                    }
+                });
+                const failText = this.add.text(400, 200, '菜單不符或食材不足！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+                this.tweens.add({ targets: failText, alpha: 0, y: 170, duration: 1000, onComplete: () => failText.destroy() });
+            }
         }
-        handleDumpPlate() { if (this.plateVisualItems.length === 0) { this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' }); return; } const dumpText = this.add.text(400, 200, '倒掉重做！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5); this.tweens.add({ targets: dumpText, alpha: 0, y: 170, duration: 1000, onComplete: () => dumpText.destroy() }); this.plateVisualItems.forEach(item => item.destroy()); this.plateVisualItems = []; this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 }; this.updateRecipeUI(); this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' }); }
-        sendPresence() { if (mqttClient && mqttClient.connected) mqttClient.publish(roomTopic, JSON.stringify({ type: 'presence', clientId: uniqueClientId, name: playerNickname })); }
-        checkPresenceTimeout() { let now = Date.now(); let hasChanged = false; for (let id in this.activeChefs) { if (id !== uniqueClientId && (now - this.activeChefs[id].lastSeen > 4000)) { delete this.activeChefs[id]; hasChanged = true; } } if (hasChanged) this.updateChefRoles(); }
-        updateChefRoles() { this.activeChefs[uniqueClientId] = { name: playerNickname, lastSeen: Date.now() }; let sortedIds = Object.keys(this.activeChefs).sort(); let chefCount = sortedIds.length; let myIndex = sortedIds.indexOf(uniqueClientId); const foodTypes = ['tomato', 'carrot', 'cabbage']; if (chefCount < foodTypes.length) this.myPool = foodTypes.filter((_, index) => index % chefCount === myIndex); else this.myPool = [ foodTypes[myIndex % foodTypes.length] ]; let foodNames = this.myPool.map(key => NAME_MAP[key]).join('/'); if (chefCount === 1) { this.btnText.setText('取得: 全食材模式'); this.statusText.setText(`👤 獨自測試中 | 無連線玩家`); } else { this.btnText.setText(`取得: ${foodNames}`); this.btnText.setFontSize(this.myPool.length > 1 ? '16px' : '18px'); this.statusText.setText(`👥 廚房人數: ${chefCount} | 負責: ${foodNames}`); } }
-        generateNewRecipe() { const randomIdx = Math.floor(Math.random() * RECIPE_BOOK.length); this.currentRecipe = JSON.parse(JSON.stringify(RECIPE_BOOK[randomIdx])); this.updateRecipeUI(); this.tweens.add({ targets: this.recipeContainer, y: { from: -100, to: 85 }, duration: 500, ease: 'Bounce.easeOut' }); }
-        updateRecipeUI() { if (!this.currentRecipe) return; this.recipeTitleText.setText(this.currentRecipe.name); let pureText = ""; for (let [key, needed] of Object.entries(this.currentRecipe.req)) { let current = this.currentProgress[key] || 0; let check = current >= needed ? '✔' : ''; pureText += `${NAME_MAP[key]} ${current}/${needed} ${check}  `; } this.recipeItemsText.setText(pureText); }
-        connectMQTT() { mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { clientId: uniqueClientId + '_' + Date.now() }); mqttClient.on('connect', () => { this.updateChefRoles(); mqttClient.subscribe(roomTopic); }); mqttClient.on('message', (topic, message) => { const data = JSON.parse(message.toString()); if (data.clientId !== uniqueClientId) { if (data.type === 'food') this.receiveFood(data.foodItem, data.senderName, data.direction); else if (data.type === 'presence') { this.activeChefs[data.clientId] = { name: data.name, lastSeen: Date.now() }; this.updateChefRoles(); } } }); }
-        sendFood(foodKey, direction) { if (mqttClient && mqttClient.connected) mqttClient.publish(roomTopic, JSON.stringify({ type: 'food', clientId: uniqueClientId, senderName: playerNickname, foodItem: foodKey, direction: direction })); }
-        spawnFood(foodKey, x, y) { const food = this.add.image(x, y, foodKey).setInteractive({ useHandCursor: true }); this.input.setDraggable(food); food.setScale(0); this.tweens.add({ targets: food, scale: 1, duration: 300, ease: 'Back.easeOut' }); }
-        receiveFood(foodKey, senderName, direction) { let startX = (direction === 'right') ? -80 : 880; let targetY = 160 + (Math.random() * 80); const food = this.add.image(startX, targetY, foodKey).setInteractive({ useHandCursor: true }); this.input.setDraggable(food); food.setAngle(direction === 'right' ? -180 : 180); let targetX = (direction === 'right') ? 180 + (Math.random()*60) : 620 - (Math.random()*60); this.tweens.add({ targets: food, x: targetX, angle: 0, duration: 700, ease: 'Quart.easeOut' }); }
+
+        // 判定向下推：倒掉洗盤子
+        handleDumpPlate() {
+            if (this.plateVisualItems.length === 0) {
+                this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' }); 
+                return;
+            }
+            const dumpText = this.add.text(400, 200, '倒掉重做！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+            this.tweens.add({ targets: dumpText, alpha: 0, y: 170, duration: 1000, onComplete: () => dumpText.destroy() });
+
+            this.plateVisualItems.forEach(item => item.destroy()); 
+            this.plateVisualItems = [];
+            this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+            this.updateRecipeUI();
+            this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' });
+        }
+
+        sendPresence() { 
+            if (mqttClient && mqttClient.connected) {
+                mqttClient.publish(roomTopic, JSON.stringify({ type: 'presence', clientId: uniqueClientId, name: playerNickname })); 
+            }
+        }
+        
+        checkPresenceTimeout() {
+            let now = Date.now(); 
+            let hasChanged = false;
+            for (let id in this.activeChefs) { 
+                if (id !== uniqueClientId && (now - this.activeChefs[id].lastSeen > 4000)) { 
+                    delete this.activeChefs[id]; 
+                    hasChanged = true; 
+                } 
+            }
+            if (hasChanged) { this.updateChefRoles(); }
+        }
+
+        updateChefRoles() {
+            this.activeChefs[uniqueClientId] = { name: playerNickname, lastSeen: Date.now() };
+            let sortedIds = Object.keys(this.activeChefs).sort();
+            let chefCount = sortedIds.length; 
+            let myIndex = sortedIds.indexOf(uniqueClientId);
+            const foodTypes = ['tomato', 'carrot', 'cabbage'];
+            
+            if (chefCount < foodTypes.length) {
+                this.myPool = foodTypes.filter((_, index) => index % chefCount === myIndex);
+            } else { 
+                this.myPool = [ foodTypes[myIndex % foodTypes.length] ]; 
+            }
+            
+            let foodNames = this.myPool.map(key => NAME_MAP[key]).join('/');
+            if (chefCount === 1) { 
+                this.btnText.setText('取得: 全食材模式'); 
+                this.statusText.setText(`👤 單人模式 | 房號: ${gameRoomId}`); 
+            } else { 
+                this.btnText.setText(`取得: ${foodNames}`); 
+                this.btnText.setFontSize(this.myPool.length > 1 ? '16px' : '18px'); 
+                this.statusText.setText(`👥 聯機人數: ${chefCount} | 負責: ${foodNames}`); 
+            }
+        }
+
+        generateNewRecipe() {
+            const randomIdx = Math.floor(Math.random() * RECIPE_BOOK.length);
+            this.currentRecipe = JSON.parse(JSON.stringify(RECIPE_BOOK[randomIdx]));
+            this.updateRecipeUI();
+            this.tweens.add({ targets: this.recipeContainer, y: { from: -100, to: 85 }, duration: 500, ease: 'Bounce.easeOut' });
+        }
+
+        updateRecipeUI() {
+            if (!this.currentRecipe) return;
+            this.recipeTitleText.setText(this.currentRecipe.name); 
+            let pureText = "";
+            for (let [key, needed] of Object.entries(this.currentRecipe.req)) {
+                let current = this.currentProgress[key] || 0; 
+                let check = current >= needed ? '✔' : '';
+                pureText += `${NAME_MAP[key]} ${current}/${needed} ${check}  `;
+            }
+            this.recipeItemsText.setText(pureText);
+        }
+
+        // 【安全修復】為 MQTT 連線加入防當保護機制
+        connectMQTT() {
+            try {
+                if (typeof mqtt === 'undefined') {
+                    throw new Error("MQTT 庫未成功加載");
+                }
+                
+                mqttClient = mqtt.connect('wss://mqttgo.io:8084/mqtt', { 
+                    clientId: uniqueClientId + '_' + Date.now(),
+                    connectTimeout: 4000
+                });
+
+                mqttClient.on('connect', () => { 
+                    this.updateChefRoles(); 
+                    mqttClient.subscribe(roomTopic); 
+                });
+
+                mqttClient.on('error', (err) => {
+                    console.warn("MQTT 連線報錯:", err);
+                    this.statusText.setText("⚠️ 伺服器異常，切換至單人模式");
+                });
+
+                mqttClient.on('message', (topic, message) => {
+                    try {
+                        const data = JSON.parse(message.toString());
+                        if (data.clientId !== uniqueClientId) {
+                            if (data.type === 'food') {
+                                this.receiveFood(data.foodItem, data.senderName, data.direction);
+                            } else if (data.type === 'presence') { 
+                                this.activeChefs[data.clientId] = { name: data.name, lastSeen: Date.now() }; 
+                                this.updateChefRoles(); 
+                            }
+                        }
+                    } catch(e) { 
+                        console.error("解析網路訊息失敗", e); 
+                    }
+                });
+            } catch (error) {
+                console.warn("連線被阻擋或伺服器未回應，啟動本機單人模式模式:", error);
+                this.statusText.setText("📴 離線測試模式");
+                this.updateChefRoles();
+            }
+        }
+
+        sendFood(foodKey, direction) { 
+            if (mqttClient && mqttClient.connected) {
+                mqttClient.publish(roomTopic, JSON.stringify({ type: 'food', clientId: uniqueClientId, senderName: playerNickname, foodItem: foodKey, direction: direction })); 
+            }
+        }
+        
+        spawnFood(foodKey, x, y) {
+            const food = this.add.image(x, y, foodKey).setInteractive({ useHandCursor: true });
+            this.input.setDraggable(food); 
+            food.setScale(0); 
+            this.tweens.add({ targets: food, scale: 1, duration: 300, ease: 'Back.easeOut' });
+        }
+
+        receiveFood(foodKey, senderName, direction) {
+            let startX = (direction === 'right') ? -80 : 880; 
+            let targetY = 160 + (Math.random() * 80);
+            const food = this.add.image(startX, targetY, foodKey).setInteractive({ useHandCursor: true });
+            this.input.setDraggable(food); 
+            food.setAngle(direction === 'right' ? -180 : 180);
+            let targetX = (direction === 'right') ? 180 + (Math.random()*60) : 620 - (Math.random()*60);
+            this.tweens.add({ targets: food, x: targetX, angle: 0, duration: 700, ease: 'Quart.easeOut' });
+        }
+
+        // ==========================================
+        // 🛠️ 貼圖繪製函數 (修復所有造成死鎖的參數)
+        // ==========================================
+        generateGameTextures() {
+            let g = this.make.graphics({ x: 0, y: 0, add: false });
+
+            // 1. 桌子木紋背景
+            g.fillStyle(0x654321, 1); 
+            g.fillRect(0, 0, 800, 480);
+            g.lineStyle(3, 0x4e341b, 0.6); 
+            for(let i=0; i<18; i++) { 
+                let y = i * 30; 
+                g.moveTo(0, y); 
+                g.lineTo(800, y + (Math.random()*15 - 7)); 
+            } 
+            g.strokePath(); 
+            g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4); 
+            g.fillRect(0, 0, 800, 480); 
+            g.generateTexture('table_bg', 800, 480); 
+            g.clear();
+
+            // 2. 垃圾桶
+            g.fillStyle(0x4a5568, 1); 
+            g.fillRoundedRect(20, 20, 60, 70, 5); 
+            g.fillStyle(0x2d3748, 1); 
+            g.fillRect(25, 30, 50, 50); 
+            g.fillStyle(0x718096, 1); 
+            g.fillRoundedRect(15, 15, 70, 10, 3); 
+            g.lineStyle(2, 0x1a202c, 0.5); 
+            g.moveTo(35, 40); g.lineTo(35, 70); 
+            g.moveTo(50, 40); g.lineTo(50, 70); 
+            g.moveTo(65, 40); g.lineTo(65, 70); 
+            g.strokePath();
+            g.generateTexture('trash_bin', 100, 100); 
+            g.clear();
+
+            // 3. 盤子 3D 質感
+            g.fillStyle(0x000000, 0.2); g.fillCircle(65, 68, 58); 
+            g.fillStyle(0xfffffd, 1); g.fillCircle(60, 60, 58);
+            g.lineStyle(6, 0xdcdcdc); g.strokeCircle(60, 60, 42); 
+            g.lineStyle(2, 0xbfbfbf); g.strokeCircle(60, 60, 45);
+            g.fillStyle(0xffffff, 0.8); g.fillEllipse(40, 40, 20, 10); 
+            g.generateTexture('plate_3d', 130, 130); 
+            g.clear();
+
+            // 4. 黑板看板
+            g.fillStyle(0x8B4513, 1); g.fillRoundedRect(0, 0, 380, 110, 8); 
+            g.lineStyle(4, 0x5a300a); g.strokeRoundedRect(2, 2, 376, 106, 8);
+            g.fillStyle(0x1a202c, 1); g.fillRoundedRect(10, 10, 360, 90, 5); 
+            g.fillStyle(0xffffff, 0.05); 
+            for(let i=0; i<50; i++) { g.fillCircle(10 + Math.random()*360, 10+Math.random()*90, 1); }
+            g.generateTexture('chalkboard', 380, 110); 
+            g.clear();
+
+            // 5. 控制按鈕 (放開 / 按下)
+            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); 
+            g.fillStyle(0x3182ce, 1); g.fillRoundedRect(0, 0, 250, 55, 10); 
+            g.fillStyle(0x63b3ed, 0.5); g.fillRoundedRect(5, 5, 240, 15, 5); 
+            g.generateTexture('btn_blue_up', 250, 60); 
+            g.clear();
+            g.fillStyle(0x2b6cb0, 1); g.fillRoundedRect(0, 0, 250, 60, 10); 
+            g.fillStyle(0x2c5282, 1); g.fillRoundedRect(0, 5, 250, 55, 10); 
+            g.generateTexture('btn_blue_down', 250, 60); 
+            g.clear();
+
+            // 6. 🍅 擬真立體番茄
+            g.fillStyle(0x000000, 0.2); g.fillCircle(54, 59, 32); 
+            g.fillStyle(0xc53030, 1); g.fillCircle(50, 55, 30); 
+            g.fillStyle(0xe53e3e, 1); g.fillCircle(48, 53, 26); 
+            g.fillStyle(0xfc8181, 0.7); g.fillEllipse(38, 38, 14, 8); // 去除末尾的 0 避免無限迴圈
+            g.fillStyle(0xffffff, 0.5); g.fillCircle(35, 35, 4);
+            g.fillStyle(0x276749, 1); 
+            g.beginPath(); 
+            g.moveTo(50, 10); g.lineTo(55, 25); g.lineTo(70, 20); g.lineTo(58, 30); g.lineTo(65, 45); 
+            g.lineTo(50, 35); g.lineTo(35, 45); g.lineTo(42, 30); g.lineTo(30, 20); g.lineTo(45, 25); 
+            g.closePath(); g.fillPath();
+            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 25, 4); 
+            g.generateTexture('tomato', 100, 100); 
+            g.clear();
+
+            // 7. 🥕 擬真立體胡蘿蔔
+            g.fillStyle(0x000000, 0.2); g.fillTriangle(44, 24, 74, 34, 54, 94);
+            g.fillStyle(0xc05621, 1); g.beginPath(); g.moveTo(40, 20); g.lineTo(70, 30); g.lineTo(50, 90); g.closePath(); g.fillPath(); 
+            g.fillStyle(0xdd6b20, 1); g.beginPath(); g.moveTo(42, 22); g.lineTo(66, 29); g.lineTo(50, 86); g.closePath(); g.fillPath(); 
+            g.lineStyle(2, 0x9c4221, 0.5); g.moveTo(48, 40); g.lineTo(58, 43); g.moveTo(45, 55); g.lineTo(53, 58); g.moveTo(51, 70); g.lineTo(56, 72); g.strokePath();
+            g.fillStyle(0x9c4221, 0.6); g.fillCircle(55, 50, 1.5); g.fillCircle(47, 65, 1.5);
+            g.fillStyle(0x276749, 1); g.fillRect(48, 5, 5, 18); g.fillRect(56, 8, 4, 15);
+            g.fillStyle(0x38a169, 1); g.fillCircle(45, 8, 6); g.fillCircle(55, 5, 7); g.fillCircle(62, 12, 5);
+            g.generateTexture('carrot', 100, 100); 
+            g.clear();
+
+            // 8. 🥬 多層次葉脈高麗菜
+            g.fillStyle(0x000000, 0.15); g.fillCircle(53, 53, 38);
+            g.fillStyle(0x22543d, 1); g.fillCircle(50, 50, 36); 
+            g.fillStyle(0x2f855a, 1); g.fillEllipse(50, 50, 34, 30); // 去除末尾的 0 
+            g.fillStyle(0x38a169, 1); g.fillEllipse(55, 45, 28, 25);
+            g.fillStyle(0x48bb78, 1); g.fillCircle(50, 50, 20);
+            g.fillStyle(0x9ae6b4, 1); g.fillEllipse(48, 52, 12, 15); 
+            g.lineStyle(2, 0xc6f6d5, 0.3);
+            g.beginPath(); g.moveTo(50, 86); g.lineTo(50, 50); 
+            g.moveTo(50, 70); g.lineTo(35, 60); g.moveTo(50, 70); g.lineTo(65, 60);
+            g.moveTo(50, 55); g.lineTo(30, 45); g.moveTo(50, 55); g.lineTo(70, 45); 
+            g.strokePath();
+            g.generateTexture('cabbage', 100, 100); 
+            g.destroy();
+        }
     }
 
-    //大廳連線邏輯
+    // --- 介面流程：從大廳進入 Phaser 引擎 ---
     document.getElementById('join-btn').addEventListener('click', () => {
         const roomInput = document.getElementById('room-input').value.trim(); 
         const nameInput = document.getElementById('name-input').value.trim();
-        if (!roomInput) return alert("請輸入房號 (Room ID)");
-        gameRoomId = roomInput; playerNickname = nameInput || '大廚'; roomTopic = `tw_game/family_style/room_${gameRoomId}`;
+        
+        if (!roomInput) { 
+            return alert("請輸入房號 (Room ID)"); 
+        }
+        
+        gameRoomId = roomInput; 
+        playerNickname = nameInput || '大廚'; 
+        roomTopic = `tw_game/family_style/room_${gameRoomId}`;
+        
+        // 切換 HTML 控制元素
         document.getElementById('lobby').style.display = 'none'; 
         document.getElementById('lobby-bg').style.opacity = '0'; 
-        setTimeout(() => document.getElementById('lobby-bg').style.display = 'none', 500);
+        
+        setTimeout(() => { 
+            document.getElementById('lobby-bg').style.display = 'none'; 
+        }, 500);
+        
         document.getElementById('game-container').style.display = 'block';
-        new Phaser.Game({ type: Phaser.AUTO, parent: 'game-container', backgroundColor: '#10141d', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 480 }, scene: GameScene });
+        
+        // 初始化並開動 Phaser 遊戲引擎
+        new Phaser.Game({ 
+            type: Phaser.AUTO, 
+            parent: 'game-container', 
+            backgroundColor: '#10141d', 
+            scale: { 
+                mode: Phaser.Scale.FIT, 
+                autoCenter: Phaser.Scale.CENTER_BOTH, 
+                width: 800, 
+                height: 480 
+            }, 
+            scene: GameScene 
+        });
     });
 </script>
 </body>
