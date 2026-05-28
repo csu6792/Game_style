@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Family Style - 垃圾桶與防重疊版</title>
+    <title>Family Style - 拖移修復與倒掉版</title>
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
@@ -46,7 +46,7 @@
     </div>
 
 <script>
-    // --- 大廳背景動畫生成 ---
+    // --- 大廳背景動畫 ---
     const lobbyBg = document.getElementById('lobby-bg');
     const svgIcons = [
         `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="55" r="35" fill="#e53e3e"/><path d="M 50 20 L 50 10" stroke="#276749" stroke-width="6"/></svg>`, 
@@ -54,8 +54,7 @@
         `<svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#68d391"/></svg>` 
     ];
     for(let i=0; i<18; i++) {
-        const div = document.createElement('div');
-        div.className = 'floating-svg';
+        const div = document.createElement('div'); div.className = 'floating-svg';
         div.innerHTML = svgIcons[Math.floor(Math.random()*svgIcons.length)];
         div.style.left = Math.random() * 100 + '%'; div.style.animationDelay = Math.random() * 15 + 's'; div.style.animationDuration = (12 + Math.random() * 10) + 's';
         lobbyBg.appendChild(div);
@@ -80,37 +79,35 @@
             this.activeChefs = {}; this.myPool = []; 
 
             this.generateGameTextures();
-
             this.add.image(400, 240, 'table_bg');
             
-            // 左右傳送帶
             this.add.rectangle(50, 240, 100, 480, 0x000000, 0.2); this.add.rectangle(750, 240, 100, 480, 0x000000, 0.2);
             this.add.text(25, 240, '◄\n傳\n送', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5).setAlpha(0.6);
             this.add.text(775, 240, '►\n傳\n送', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5).setAlpha(0.6);
 
-            // 分數與狀態 HUD
             this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 15, 200, 50, 10);
             this.scoreText = this.add.text(35, 40, '⭐ 分數: 0', { fontSize: '28px', fill: '#ecc94b', fontStyle: 'bold' }).setOrigin(0, 0.5);
             this.add.graphics().fillStyle(0x000000, 0.6).fillRoundedRect(15, 420, 300, 50, 10);
             this.statusText = this.add.text(30, 445, '連線初始化...', { fontSize: '16px', fill: '#a0aec0', fontFamily: 'Microsoft JhengHei' }).setOrigin(0, 0.5);
 
-            // 🗑️ 新增：右上角垃圾桶 (層級提高)
             this.trashBin = this.add.image(730, 80, 'trash_bin').setDepth(2);
             this.add.text(730, 130, '垃圾桶', { fontSize: '14px', fill: '#a0aec0', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setDepth(2);
 
-            // 📜 食譜看板
             this.recipeContainer = this.add.container(400, 85).setDepth(10);
             const rbg = this.add.image(0, 0, 'chalkboard');
             this.recipeTitleText = this.add.text(0, -25, '準備中...', { fontSize: '24px', fill: '#f6ad55', fontStyle: 'bold' }).setOrigin(0.5);
             this.recipeItemsText = this.add.text(0, 15, '', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
             this.recipeContainer.add([rbg, this.recipeTitleText, this.recipeItemsText]);
 
-            // 🍽️ 盤子容器系統
+            // 🍽️ 盤子系統修復：直接將 Container 設為可互動，解決位移 Bug
             this.plateContainer = this.add.container(400, 290).setDepth(5);
-            this.plateBg = this.add.image(0, 0, 'plate_3d').setInteractive({ useHandCursor: true });
-            this.plateText = this.add.text(0, 45, '組合 ➔ 往上滑出餐', { fontSize: '13px', fill: '#718096', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setAlpha(0.8);
+            this.plateContainer.setSize(130, 130); // 必須設定大小才能接收點擊
+            this.plateContainer.setInteractive({ useHandCursor: true });
+            this.input.setDraggable(this.plateContainer); // 將拖曳事件綁定在容器上
+
+            this.plateBg = this.add.image(0, 0, 'plate_3d'); // 移除圖片本身的 Interactive
+            this.plateText = this.add.text(0, 45, '往上出餐 ➔ 往下倒掉', { fontSize: '12px', fill: '#718096', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei' }).setOrigin(0.5).setAlpha(0.8);
             this.plateContainer.add([this.plateBg, this.plateText]);
-            this.input.setDraggable(this.plateBg);
             this.plateVisualItems = [];
 
             // 🛒 拿取按鈕
@@ -125,10 +122,7 @@
                 if (this.myPool.length === 0) return;
                 this.btnBgNormal.setVisible(false); this.btnBgPressed.setVisible(true); this.btnText.y = 2;
                 let foodToSpawn = this.myPool[Math.floor(Math.random() * this.myPool.length)];
-                
-                // 改進生成座標：避開正中央的盤子區域，只在桌子上半部產生
-                const rx = 150 + (Math.random() * 500); 
-                const ry = 160 + (Math.random() * 50);
+                const rx = 150 + (Math.random() * 500); const ry = 160 + (Math.random() * 50);
                 this.spawnFood(foodToSpawn, rx, ry);
             });
             this.btnBgNormal.on('pointerup', () => this.resetBtnState());
@@ -136,19 +130,27 @@
 
             // ✋ 全域拖曳邏輯
             this.input.on('dragstart', (p, obj) => {
-                if (obj !== this.plateBg) { this.children.bringToTop(obj); obj.setScale(1.2); obj.setAlpha(0.9); }
+                if (obj !== this.plateContainer) { this.children.bringToTop(obj); obj.setScale(1.2); obj.setAlpha(0.9); }
             });
 
             this.input.on('drag', (p, obj, dx, dy) => { 
-                if (obj === this.plateBg) {
-                    this.plateContainer.y = Phaser.Math.Clamp(dy, -200, 290); this.plateContainer.x = dx;
+                if (obj === this.plateContainer) {
+                    // 放寬往下的 Y 軸限制，讓玩家可以往下拉到底 (450) 來倒掉食材
+                    obj.y = Phaser.Math.Clamp(dy, -200, 450); 
+                    obj.x = dx;
                 } else { obj.x = dx; obj.y = dy; }
             });
             
             this.input.on('dragend', (p, obj) => {
-                if (obj === this.plateBg) {
-                    if (this.plateContainer.y < 170) this.handleServeGesture();
-                    else this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' });
+                if (obj === this.plateContainer) {
+                    if (this.plateContainer.y < 170) {
+                        this.handleServeGesture(); // 往上 = 出餐
+                    } else if (this.plateContainer.y > 380) {
+                        this.handleDumpPlate(); // 往下 = 倒掉重做
+                    } else {
+                        // 回彈原位
+                        this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' });
+                    }
                     return;
                 }
 
@@ -157,29 +159,18 @@
                 const distToTrash = Phaser.Math.Distance.Between(obj.x, obj.y, this.trashBin.x, this.trashBin.y);
                 const distToPlate = Phaser.Math.Distance.Between(obj.x, obj.y, this.plateContainer.x, this.plateContainer.y);
                 
-                // 1. 🗑️ 丟進垃圾桶優先判定
                 if (distToTrash < 60) {
                     this.tweens.add({ targets: obj, scale: 0, angle: 180, duration: 250, onComplete: () => obj.destroy() });
-                    // 垃圾桶吃下東西的震動特效
                     this.tweens.add({ targets: this.trashBin, scale: 1.2, yoyo: true, duration: 80 });
                 }
-                // 2. 🍽️ 丟進盤子
-                else if (distToPlate < 80) {
-                    this.handleCombineToPlate(obj);
-                } 
-                // 3. 📤 左右傳送
+                else if (distToPlate < 80) { this.handleCombineToPlate(obj); } 
                 else if (obj.x > 700) { this.sendFood(obj.texture.key, 'right'); obj.destroy(); } 
                 else if (obj.x < 100) { this.sendFood(obj.texture.key, 'left'); obj.destroy(); } 
-                // 4. 🧲 落在桌面 (排斥防重疊)
                 else {
-                    let targetX = Phaser.Math.Clamp(obj.x, 120, 680);
-                    let targetY = Phaser.Math.Clamp(obj.y, 40, 440);
-
-                    // 磁力防重疊：如果放在盤子邊緣(太靠近)，會自動彈開一段距離
+                    let targetX = Phaser.Math.Clamp(obj.x, 120, 680); let targetY = Phaser.Math.Clamp(obj.y, 40, 440);
                     if (distToPlate >= 80 && distToPlate < 140) {
                         const angle = Phaser.Math.Angle.Between(this.plateContainer.x, this.plateContainer.y, targetX, targetY);
-                        targetX = this.plateContainer.x + Math.cos(angle) * 150; // 彈到半徑 150 之外
-                        targetY = this.plateContainer.y + Math.sin(angle) * 150;
+                        targetX = this.plateContainer.x + Math.cos(angle) * 150; targetY = this.plateContainer.y + Math.sin(angle) * 150;
                     }
                     this.tweens.add({ targets: obj, x: targetX, y: targetY, duration: 200, ease: 'Back.easeOut' });
                 }
@@ -198,8 +189,7 @@
             this.currentProgress[foodKey]++;
 
             this.tweens.add({
-                targets: foodObj,
-                x: this.plateContainer.x + (Math.random() * 40 - 20), y: this.plateContainer.y + (Math.random() * 40 - 20),
+                targets: foodObj, x: this.plateContainer.x + (Math.random() * 40 - 20), y: this.plateContainer.y + (Math.random() * 40 - 20),
                 scale: 0.45, duration: 200, ease: 'Quad.easeOut',
                 onComplete: () => {
                     const localX = foodObj.x - this.plateContainer.x; const localY = foodObj.y - this.plateContainer.y;
@@ -240,6 +230,27 @@
                 const failText = this.add.text(400, 200, '菜單不符或食材不足！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
                 this.tweens.add({ targets: failText, alpha: 0, y: 170, duration: 1000, onComplete: () => failText.destroy() });
             }
+        }
+
+        // 🗑️ 新增功能：整盤倒掉重做
+        handleDumpPlate() {
+            if (this.plateVisualItems.length === 0) {
+                // 如果盤子本來就空的，就直接彈回去
+                this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' });
+                return;
+            }
+
+            const dumpText = this.add.text(400, 200, '倒掉重做！', { fontSize: '24px', fill: '#e53e3e', fontStyle: 'bold', fontFamily: 'Microsoft JhengHei', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+            this.tweens.add({ targets: dumpText, alpha: 0, y: 170, duration: 1000, onComplete: () => dumpText.destroy() });
+
+            // 銷毀盤內所有視覺圖示與數據
+            this.plateVisualItems.forEach(item => item.destroy()); 
+            this.plateVisualItems = [];
+            this.currentProgress = { tomato: 0, carrot: 0, cabbage: 0 };
+            this.updateRecipeUI();
+
+            // 讓盤子彈回中央
+            this.tweens.add({ targets: this.plateContainer, x: 400, y: 290, duration: 250, ease: 'Back.easeOut' });
         }
 
         sendPresence() { if (mqttClient && mqttClient.connected) mqttClient.publish(roomTopic, JSON.stringify({ type: 'presence', clientId: uniqueClientId, name: playerNickname })); }
@@ -286,11 +297,8 @@
             g.lineStyle(3, 0x4e341b, 0.6); for(let i=0; i<18; i++) { let y = i * 30; g.moveTo(0, y); g.lineTo(800, y + (Math.random()*15 - 7)); } g.strokePath(); 
             g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.4, 0.4); g.fillRect(0, 0, 800, 480); g.generateTexture('table_bg', 800, 480); g.clear();
 
-            // 🗑️ 垃圾桶繪製
-            g.fillStyle(0x4a5568, 1); g.fillRoundedRect(20, 20, 60, 70, 5); // 桶身
-            g.fillStyle(0x2d3748, 1); g.fillRect(25, 30, 50, 50); // 內凹暗面
-            g.fillStyle(0x718096, 1); g.fillRoundedRect(15, 15, 70, 10, 3); // 蓋子邊緣
-            g.lineStyle(2, 0x1a202c, 0.5); g.moveTo(35, 40); g.lineTo(35, 70); g.moveTo(50, 40); g.lineTo(50, 70); g.moveTo(65, 40); g.lineTo(65, 70); g.strokePath();
+            g.fillStyle(0x4a5568, 1); g.fillRoundedRect(20, 20, 60, 70, 5); g.fillStyle(0x2d3748, 1); g.fillRect(25, 30, 50, 50); 
+            g.fillStyle(0x718096, 1); g.fillRoundedRect(15, 15, 70, 10, 3); g.lineStyle(2, 0x1a202c, 0.5); g.moveTo(35, 40); g.lineTo(35, 70); g.moveTo(50, 40); g.lineTo(50, 70); g.moveTo(65, 40); g.lineTo(65, 70); g.strokePath();
             g.generateTexture('trash_bin', 100, 100); g.clear();
 
             g.fillStyle(0x000000, 0.2); g.fillCircle(65, 68, 58); g.fillStyle(0xfffffd, 1); g.fillCircle(60, 60, 58);
@@ -329,9 +337,7 @@
         }
 
         receiveFood(foodKey, senderName, direction) {
-            let startX = (direction === 'right') ? -80 : 880;
-            // 收到食物的高度也稍微拉高，避免直接掉進盤子
-            let targetY = 160 + (Math.random() * 80);
+            let startX = (direction === 'right') ? -80 : 880; let targetY = 160 + (Math.random() * 80);
             const food = this.add.image(startX, targetY, foodKey).setInteractive({ useHandCursor: true });
             this.input.setDraggable(food); food.setAngle(direction === 'right' ? -180 : 180);
             let targetX = (direction === 'right') ? 180 + (Math.random()*60) : 620 - (Math.random()*60);
